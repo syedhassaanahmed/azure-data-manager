@@ -51,6 +51,7 @@ namespace DataManager.Web
                 .AddSingleton<DataFactoryService>()
                 .AddSingleton<ConnectionService>()
                 .AddSingleton<DatasetService>()
+                .AddSingleton<ActivityService>()
                 .AddSingleton<PipelineService>();
         }
 

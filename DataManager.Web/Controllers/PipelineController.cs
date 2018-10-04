@@ -34,7 +34,7 @@ namespace DataManager.Web.Controllers
         [HttpPost]
         public async Task Create([FromBody] string name)
         {
-            await _pipelineService.CreateAsync(name);
+            await _pipelineService.UpsertAsync(name);
         }
 
         // PUT: api/Pipeline/5

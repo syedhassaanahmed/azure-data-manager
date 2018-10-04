@@ -19,10 +19,10 @@ namespace DataManager.Services
             _keyVaultOptions = keyVaultOptions.Value;
             _databricksOptions = databricksOptions.Value;
 
-            CreateKeyVaultAsync().Wait();
+            UpsertKeyVaultAsync().Wait();
         }
 
-        private async Task CreateKeyVaultAsync()
+        private async Task UpsertKeyVaultAsync()
         {
             var service = new AzureKeyVaultLinkedService()
             {
@@ -44,7 +44,7 @@ namespace DataManager.Services
             };
         }
 
-        public async Task CreateBlobStorageAsync(string name)
+        public async Task UpsertBlobStorageAsync(string name)
         {
             var service = new AzureBlobStorageLinkedService()
             {
@@ -54,7 +54,7 @@ namespace DataManager.Services
             await UpsertAsync(name, service);
         }
 
-        public async Task CreateSqlServerAsync(string name)
+        public async Task UpsertSqlServerAsync(string name)
         {
             var service = new AzureSqlDatabaseLinkedService()
             {
@@ -64,8 +64,9 @@ namespace DataManager.Services
             await UpsertAsync(name, service);
         }
 
-        public async Task CreateDatabricksAsync(string name, string clusterName = "")
+        public async Task<string> UpsertDatabricksAsync()
         {
+            var name = _databricksOptions.KeyVaultSecretName;
             var pythonVersion = $"python{_databricksOptions.PythonVersion}";
 
             var service = new AzureDatabricksLinkedService()
@@ -82,6 +83,7 @@ namespace DataManager.Services
             };
 
             await UpsertAsync(name, service);
+            return name;
         }
 
         private async Task UpsertAsync(string name, LinkedService service)

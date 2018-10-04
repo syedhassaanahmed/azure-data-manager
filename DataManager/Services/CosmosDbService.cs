@@ -13,8 +13,6 @@ namespace DataManager.Services
         private readonly CosmosDbOptions _cosmosDbOptions;
         private readonly DocumentClient _documentClient;
 
-        private const int DefaultRu = 400;
-
         public CosmosDbService(IOptions<CosmosDbOptions> cosmosDbOptions)
         {
             _cosmosDbOptions = cosmosDbOptions.Value;
@@ -33,7 +31,7 @@ namespace DataManager.Services
             var databaseLink = UriFactory.CreateDatabaseUri(_cosmosDbOptions.Database);
             await _documentClient.CreateDocumentCollectionIfNotExistsAsync(databaseLink,
                  new DocumentCollection { Id = collection },
-                 new RequestOptions { OfferThroughput = DefaultRu });
+                 new RequestOptions { OfferThroughput = _cosmosDbOptions.DefaultThroughput });
 
             var collectionLink = UriFactory.CreateDocumentCollectionUri(_cosmosDbOptions.Database, collection);
             var feedOptions = new FeedOptions { MaxItemCount = -1 };

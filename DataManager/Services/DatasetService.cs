@@ -1,6 +1,7 @@
 ﻿using DataManager.Models;
 using Microsoft.Azure.Management.DataFactory.Models;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace DataManager.Services
@@ -16,7 +17,7 @@ namespace DataManager.Services
             _connectionService = connectionService;
         }
 
-        public async Task CreateAllAsync(IEnumerable<Models.Dataset> datasets)
+        public async Task UpsertAllAsync(IEnumerable<Models.Dataset> datasets)
         {
             foreach (var dataset in datasets)
             {
@@ -25,20 +26,23 @@ namespace DataManager.Services
                 switch (dataset.Type)
                 {
                     case DatasetType.BlobStorage:
-                        await _connectionService.CreateBlobStorageAsync(dataset.SecretName);
+                        await _connectionService.UpsertBlobStorageAsync(dataset.SecretName);
 
-                        var format = GetFormat(dataset.DataPath);
+                        var format = GetFormat(Path.GetExtension(dataset.DataPath));
+                        var folderPath = Path.GetDirectoryName(dataset.DataPath).Replace("\\", "/");
+                        var fileName = Path.GetFileName(dataset.DataPath);
 
                         ds = new AzureBlobDataset
                         {
                             Description = dataset.Description,
                             LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
-                            FolderPath = dataset.DataPath,
+                            FolderPath = folderPath,
+                            FileName = fileName,
                             Format = format
                         };
                         break;
                     case DatasetType.SqlServer:
-                        await _connectionService.CreateSqlServerAsync(dataset.SecretName);
+                        await _connectionService.UpsertSqlServerAsync(dataset.SecretName);
 
                         ds = new AzureSqlTableDataset
                         {
@@ -55,32 +59,25 @@ namespace DataManager.Services
             }
         }
 
-        private static DatasetStorageFormat GetFormat(string dataPath)
+        private static DatasetStorageFormat GetFormat(string extension)
         {
-            DatasetStorageFormat format = null;
+            var additionalProperties = new Dictionary<string, object>();
 
-            if (dataPath.Trim().EndsWith(".json"))
+            switch (extension)
             {
-                var additionalProperties = new Dictionary<string, object>
-                {
-                    { "type", "JsonFormat" },
-                    { "filePattern", "setOfObjects" }
-                };
-
-                format = new DatasetStorageFormat(additionalProperties);
+                case ".json":
+                    additionalProperties.Add("type", "JsonFormat");
+                    break;
+                case ".csv":
+                    additionalProperties.Add("type", "TextFormat");
+                    additionalProperties.Add("firstRowAsHeader", true);
+                    break;
+                case ".parquet":
+                    additionalProperties.Add("type", "ParquetFormat");
+                    break;
             }
 
-            return format;
+            return new DatasetStorageFormat(additionalProperties);
         }
-
-        //public (string Path, string Name) GetById(string id)
-        //{
-        //    if (_list.ContainsKey(id))
-        //    {
-        //        return _list[id];
-        //    }
-
-        //    return ("", "");
-        //}
     }
 }

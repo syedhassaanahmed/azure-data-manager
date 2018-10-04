@@ -1,0 +1,16 @@
+IF OBJECT_ID('dbo.Sensor', 'U') IS NOT NULL 
+	DROP TABLE dbo.Sensor;
+GO
+
+CREATE TABLE Sensor 
+(
+	ID INT IDENTITY(1,1) NOT NULL,
+	Name VARCHAR(100) NOT NULL,
+	CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+)
+GO
+
+INSERT INTO Sensor(Name) VALUES ('Temperature')
+INSERT INTO Sensor(Name) VALUES ('Pressure')
+INSERT INTO Sensor(Name) VALUES ('Humidity')
+GO

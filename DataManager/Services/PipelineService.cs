@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using DataManager.Models;
+using Microsoft.Azure.Management.DataFactory.Models;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DataManager.Services
@@ -7,74 +10,74 @@ namespace DataManager.Services
     {
         private readonly CosmosDbService _cosmosDbService;
         private readonly DatasetService _datasetService;
+        private readonly DataFactoryService _dataFactoryService;
+        private readonly ActivityService _activityService;
 
-        private readonly Dictionary<string, string> _pipelineNameRunIdList = new Dictionary<string, string>();
-
-        public PipelineService(CosmosDbService cosmosDbService, DatasetService datasetService)
+        public PipelineService(CosmosDbService cosmosDbService, DatasetService datasetService, 
+            DataFactoryService dataFactoryService, ActivityService activityService)
         {
             _cosmosDbService = cosmosDbService;
             _datasetService = datasetService;
+            _dataFactoryService = dataFactoryService;
+            _activityService = activityService;
         }
 
-        public async Task CreateAsync(string name)
+        public async Task UpsertAsync(string name)
         {
             var datasets = await _cosmosDbService.ReadAllAsync<Models.Dataset>("dataset");
-            await _datasetService.CreateAllAsync(datasets);
+            await _datasetService.UpsertAllAsync(datasets);
 
-            /*var jobList = _cosmosDbService.ReadAll<Job>("job");
+            var activeJobs = (await _cosmosDbService.ReadAllAsync<Job>("job")).Where(x => x.IsActive);
 
             var pipeline = new PipelineResource
             {
                 Activities = new List<Activity>()
             };
 
-            foreach (var job in jobList)
+            foreach (var job in activeJobs)
             {
                 ExecutionActivity activity = null;
 
                 switch (job.Specification.Type)
                 {
-                    case "Databricks":
+                    case JobType.Databricks:
                         {
                             var parameters = new Dictionary<string, object>();
                             foreach (var p in job.Specification.NotebookParameters)
                             {
-                                var (Path, Name) = DatasetService.Current.GetById(p.DatasetId);
-
-                                if (!string.IsNullOrWhiteSpace(Path))
+                                var path = datasets.First(x => x.Id == p.DatasetId).DataPath;
+                                if (!string.IsNullOrWhiteSpace(path))
                                 {
-                                    parameters.Add(p.Name, Path);
+                                    parameters.Add(p.Name, path);
                                 }
                             }
 
-                            activity = ActivityService.Current.CreateDatabricks(job.Id, job.Specification.NotebookPath, 
-                                job.Specification.Type, parameters);
+                            activity = await _activityService.CreateDatabricksAsync(job.Id, job.Specification.NotebookPath, parameters);
                         }
                         break;
-                    case "ADFCopy":
+                    case JobType.Copy:
                         {
-                            var from = DatasetService.Current.GetById(job.From.FirstOrDefault()).Name;
-                            var to = DatasetService.Current.GetById(job.To.FirstOrDefault()).Name;
-
-                            activity = ActivityService.Current.CreateAdfCopy(job.Id, from, to);
+                            activity = _activityService.CreateCopy(job.Id, job.From.First(), job.To.First());
                         }
                         break;
                 }
 
-                if (job.DependsOn != null && job.DependsOn.Any())
-                {
-                    activity.DependsOn = job.DependsOn.Select(x =>
-                        new ActivityDependency() { Activity = x, DependencyConditions = new List<string>() { "Succeeded" } })
-                        .ToList();
-                }
-
+                activity.DependsOn = GetDependencies(job, activeJobs);
                 pipeline.Activities.Add(activity);
             }
 
-            _pipelineNameRunIdList.Add(name, string.Empty);
+            await _dataFactoryService.UpsertAsync(name, pipeline);
+        }
 
-            DataFactoryService.Current.DataFactoryClient.Pipelines.CreateOrUpdate(Configuration.ResourceGroupName, 
-                Configuration.DataFactoryName, name, pipeline);*/
+        private static IList<ActivityDependency> GetDependencies(Job currentJob, IEnumerable<Job> allJobs)
+        {
+            var dependentJobs = from j in allJobs
+                               where j.Id != currentJob.Id && currentJob.From.Any(f => j.To.Contains(f))
+                               select j.Id;
+
+            return dependentJobs.Select(j =>
+                new ActivityDependency { Activity = j, DependencyConditions = new List<string> { "Succeeded" } })
+                .ToList();
         }
 
         /*public void RunAll()

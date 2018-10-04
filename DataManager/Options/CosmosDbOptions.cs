@@ -5,6 +5,6 @@
         public string Endpoint { get; set; }
         public string PrimaryKey { get; set; }
         public string Database { get; set; }
+        public int DefaultThroughput { get; set; } = 400;
     }
-
 }
