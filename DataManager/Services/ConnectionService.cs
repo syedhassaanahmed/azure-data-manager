@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using DataManager.Options;
 using Microsoft.Extensions.Options;
+using System.Collections.Generic;
 
 namespace DataManager.Services
 {
@@ -28,7 +29,7 @@ namespace DataManager.Services
                 BaseUrl = $"https://{_keyVaultOptions.Name}.vault.azure.net/"
             };
 
-            await _dataFactoryService.UpsertAsync(_keyVaultOptions.Name, new LinkedServiceResource(service));
+            await UpsertAsync(_keyVaultOptions.Name, service);
         }
 
         private AzureKeyVaultSecretReference GetKeyVaultReference(string name)
@@ -50,7 +51,7 @@ namespace DataManager.Services
                 ConnectionString = GetKeyVaultReference(name)
             };
 
-            await _dataFactoryService.UpsertAsync(name, new LinkedServiceResource(service));
+            await UpsertAsync(name, service);
         }
 
         public async Task CreateSqlServerAsync(string name)
@@ -60,18 +61,34 @@ namespace DataManager.Services
                 ConnectionString = GetKeyVaultReference(name)
             };
 
-            await _dataFactoryService.UpsertAsync(name, new LinkedServiceResource(service));
+            await UpsertAsync(name, service);
         }
 
         public async Task CreateDatabricksAsync(string name, string clusterName = "")
         {
+            var pythonVersion = $"python{_databricksOptions.PythonVersion}";
+
             var service = new AzureDatabricksLinkedService()
             {
                 Domain = _databricksOptions.Endpoint,
-                AccessToken = GetKeyVaultReference(_databricksOptions.KeyVaultSecretName)
+                AccessToken = GetKeyVaultReference(_databricksOptions.KeyVaultSecretName),
+                NewClusterNodeType = _databricksOptions.NodeType,
+                NewClusterNumOfWorker = _databricksOptions.NumberOfWorkers,
+                NewClusterVersion = _databricksOptions.RuntimeVersion,
+                NewClusterSparkEnvVars = new Dictionary<string, object>
+                {
+                    { "PYSPARK_PYTHON", $"/databricks/{pythonVersion}/bin/{pythonVersion}" }
+                }
             };
 
-            await _dataFactoryService.UpsertAsync(name, new LinkedServiceResource(service));
-        }        
+            await UpsertAsync(name, service);
+        }
+
+        private async Task UpsertAsync(string name, LinkedService service)
+        {
+            var resource = new LinkedServiceResource(service);
+            resource.Validate();
+            await _dataFactoryService.UpsertAsync(name, resource);
+        }
     }
 }

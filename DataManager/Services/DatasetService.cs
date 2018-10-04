@@ -48,6 +48,7 @@ namespace DataManager.Services
                         break;
                 }
 
+                ds.Annotations = dataset.Tags;
                 var resource = new DatasetResource(ds);
                 resource.Validate();
                 await _dataFactoryService.UpsertAsync(dataset.Id, resource);
