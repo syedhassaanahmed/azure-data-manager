@@ -13,23 +13,23 @@ namespace DataManager.Services
     {
         private readonly AzureADOptions _azureAdOptions;
         private readonly DataFactoryOptions _dataFactoryOptions;
-        private DataFactoryManagementClient _dataFactoryClient;
+        private readonly DataFactoryManagementClient _dataFactoryClient;
 
         public DataFactoryService(IOptions<AzureADOptions> azureAdOptions, IOptions<DataFactoryOptions> dataFactoryOptions)
         {
             _azureAdOptions = azureAdOptions.Value;
             _dataFactoryOptions = dataFactoryOptions.Value;
 
-            InitializeAsync().Wait();
+            _dataFactoryClient = CreateDataFactoryClientAsync().Result;
         }
 
-        private async Task InitializeAsync()
+        private async Task<DataFactoryManagementClient> CreateDataFactoryClientAsync()
         {
             var context = new AuthenticationContext($"https://login.windows.net/{_azureAdOptions.Domain}");
             var cc = new ClientCredential(_azureAdOptions.ClientId, _azureAdOptions.ClientSecret);
             var result = await context.AcquireTokenAsync("https://management.azure.com/", cc);
             var cred = new TokenCredentials(result.AccessToken);
-            _dataFactoryClient = new DataFactoryManagementClient(cred) { SubscriptionId = _dataFactoryOptions.SubscriptionId };
+            return new DataFactoryManagementClient(cred) { SubscriptionId = _dataFactoryOptions.SubscriptionId };
         }
 
         public async Task UpsertAsync(string name, LinkedServiceResource resource)

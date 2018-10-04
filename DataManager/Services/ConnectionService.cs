@@ -1,81 +1,77 @@
 ﻿using Microsoft.Azure.Management.DataFactory.Models;
-using Newtonsoft.Json;
-using System;
-using System.Linq;
-using System.Net.Http;
-using DataManager.Helpers;
 using System.Threading.Tasks;
+using DataManager.Options;
+using Microsoft.Extensions.Options;
 
 namespace DataManager.Services
 {
     public class ConnectionService
     {
         private readonly DataFactoryService _dataFactoryService;
+        private readonly KeyVaultOptions _keyVaultOptions;
+        private readonly DatabricksOptions _databricksOptions;
 
-        public ConnectionService(DataFactoryService dataFactoryService)
+        public ConnectionService(DataFactoryService dataFactoryService, IOptions<KeyVaultOptions> keyVaultOptions,
+            IOptions<DatabricksOptions> databricksOptions)
         {
             _dataFactoryService = dataFactoryService;
+            _keyVaultOptions = keyVaultOptions.Value;
+            _databricksOptions = databricksOptions.Value;
+
+            CreateKeyVaultAsync().Wait();
         }
 
-        public async Task<string> CreateBlobStorageAsync()
+        private async Task CreateKeyVaultAsync()
         {
-            var name = "BlobStorage";
-
-            var service = new AzureDataLakeStoreLinkedService()
+            var service = new AzureKeyVaultLinkedService()
             {
-                DataLakeStoreUri = Configuration.DataLakeStorageUri
+                BaseUrl = $"https://{_keyVaultOptions.Name}.vault.azure.net/"
+            };
+
+            await _dataFactoryService.UpsertAsync(_keyVaultOptions.Name, new LinkedServiceResource(service));
+        }
+
+        private AzureKeyVaultSecretReference GetKeyVaultReference(string name)
+        {
+            return new AzureKeyVaultSecretReference
+            {
+                SecretName = name,
+                Store = new LinkedServiceReference
+                {
+                    ReferenceName = _keyVaultOptions.Name
+                }
+            };
+        }
+
+        public async Task CreateBlobStorageAsync(string name)
+        {
+            var service = new AzureBlobStorageLinkedService()
+            {
+                ConnectionString = GetKeyVaultReference(name)
             };
 
             await _dataFactoryService.UpsertAsync(name, new LinkedServiceResource(service));
-
-            return name;
         }
 
-        public async Task<string> CreateDatabricksAsync(string clusterName = "")
+        public async Task CreateSqlServerAsync(string name)
         {
-            var name = "Databricks";
-
-            var httpClient = new HttpClient() { BaseAddress = new Uri($"{Configuration.DatabricksEndpoint}/api/2.0/") };
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {Configuration.DatabricksAccessToken}");
-
-            var jsonResult = httpClient.GetStringAsync("clusters/list").GetAwaiter().GetResult();
-            var clusterList = JsonConvert.DeserializeObject<ClusterListResponse>(jsonResult).clusters;
-
-            var existingClusterId = clusterList.FirstOrDefault().cluster_id;
-
-            if (!string.IsNullOrWhiteSpace(clusterName))
+            var service = new AzureSqlDatabaseLinkedService()
             {
-                existingClusterId = clusterList.FirstOrDefault(e => e.cluster_name == clusterName)?.cluster_id;
-            }
+                ConnectionString = GetKeyVaultReference(name)
+            };
 
+            await _dataFactoryService.UpsertAsync(name, new LinkedServiceResource(service));
+        }
+
+        public async Task CreateDatabricksAsync(string name, string clusterName = "")
+        {
             var service = new AzureDatabricksLinkedService()
             {
-                Domain = Configuration.DatabricksEndpoint,
-                AccessToken = new SecureString(Configuration.DatabricksAccessToken),
-                ExistingClusterId = existingClusterId
+                Domain = _databricksOptions.Endpoint,
+                AccessToken = GetKeyVaultReference(_databricksOptions.KeyVaultSecretName)
             };
 
             await _dataFactoryService.UpsertAsync(name, new LinkedServiceResource(service));
-
-            return name;
-        }
-
-        public async Task<string> CreateSqlServerAsync()
-        {
-            var name = "SQLServer";
-
-            
-
-            return name;
-        }
-
-        public async Task CreateAllAsync()
-        {
-            await Task.WhenAll(
-                CreateDatabricksAsync(),
-                CreateBlobStorageAsync(),
-                CreateSqlServerAsync()
-            );
-        }
+        }        
     }
 }

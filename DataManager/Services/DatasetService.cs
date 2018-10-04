@@ -8,48 +8,49 @@ namespace DataManager.Services
     public class DatasetService
     {
         private readonly DataFactoryService _dataFactoryService;
+        private readonly ConnectionService _connectionService;
 
-        private readonly IDictionary<string, (string Path, string Name)> _list = 
-            new Dictionary<string, (string Path, string Name)>();
-
-        public DatasetService(DataFactoryService dataFactoryService)
+        public DatasetService(DataFactoryService dataFactoryService, ConnectionService connectionService)
         {
             _dataFactoryService = dataFactoryService;
+            _connectionService = connectionService;
         }
 
-        public async Task CreateAllAsync(IEnumerable<Models.Dataset> datasetList)
+        public async Task CreateAllAsync(IEnumerable<Models.Dataset> datasets)
         {
-            foreach (var dataset in datasetList)
+            foreach (var dataset in datasets)
             {
-                var serviceName = string.Empty;
-
                 Microsoft.Azure.Management.DataFactory.Models.Dataset ds = null;
 
                 switch (dataset.Type)
                 {
                     case DatasetType.BlobStorage:
+                        await _connectionService.CreateBlobStorageAsync(dataset.SecretName);
+
                         var format = GetFormat(dataset.DataPath);
 
-                        ds = new AzureDataLakeStoreDataset()
+                        ds = new AzureBlobDataset
                         {
                             Description = dataset.Description,
-                            LinkedServiceName = new LinkedServiceReference() { ReferenceName = serviceName },
+                            LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
                             FolderPath = dataset.DataPath,
                             Format = format
                         };
                         break;
                     case DatasetType.SqlServer:
-                        ds = new MongoDbCollectionDataset()
+                        await _connectionService.CreateSqlServerAsync(dataset.SecretName);
+
+                        ds = new AzureSqlTableDataset
                         {
-                            LinkedServiceName = new LinkedServiceReference() { ReferenceName = serviceName },
-                            CollectionName = dataset.DataPath
+                            LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
+                            TableName = dataset.DataPath
                         };
                         break;
                 }
 
-                _list.Add(dataset.Id, (dataset.DataPath, dataset.Id));
-
-                await _dataFactoryService.UpsertAsync(dataset.Id, new DatasetResource(ds));
+                var resource = new DatasetResource(ds);
+                resource.Validate();
+                await _dataFactoryService.UpsertAsync(dataset.Id, resource);
             }
         }
 
@@ -59,10 +60,11 @@ namespace DataManager.Services
 
             if (dataPath.Trim().EndsWith(".json"))
             {
-                var additionalProperties = new Dictionary<string, object>() {
-                                { "type", "JsonFormat" },
-                                { "filePattern", "setOfObjects" }
-                            };
+                var additionalProperties = new Dictionary<string, object>
+                {
+                    { "type", "JsonFormat" },
+                    { "filePattern", "setOfObjects" }
+                };
 
                 format = new DatasetStorageFormat(additionalProperties);
             }
@@ -70,14 +72,14 @@ namespace DataManager.Services
             return format;
         }
 
-        public (string Path, string Name) GetById(string id)
-        {
-            if (_list.ContainsKey(id))
-            {
-                return _list[id];
-            }
+        //public (string Path, string Name) GetById(string id)
+        //{
+        //    if (_list.ContainsKey(id))
+        //    {
+        //        return _list[id];
+        //    }
 
-            return ("", "");
-        }
+        //    return ("", "");
+        //}
     }
 }

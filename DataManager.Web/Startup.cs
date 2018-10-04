@@ -45,6 +45,8 @@ namespace DataManager.Web
             services.AddOptions()
                 .Configure<CosmosDbOptions>(Configuration.GetSection("CosmosDb"))
                 .Configure<DataFactoryOptions>(Configuration.GetSection("DataFactory"))
+                .Configure<KeyVaultOptions>(Configuration.GetSection("KeyVault"))
+                .Configure<DatabricksOptions>(Configuration.GetSection("Databricks"))
                 .AddSingleton<CosmosDbService>()                
                 .AddSingleton<DataFactoryService>()
                 .AddSingleton<ConnectionService>()
