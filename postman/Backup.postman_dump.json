@@ -1,0 +1,115 @@
+{
+	"version": 1,
+	"collections": [
+		{
+			"id": "3d942399-b722-4a76-b6aa-4fba1ccddd3c",
+			"name": "data-manager",
+			"description": "",
+			"auth": null,
+			"events": null,
+			"variables": [],
+			"order": [
+				"44feefec-fa7c-4d58-a567-99f04fe87496"
+			],
+			"folders_order": [],
+			"folders": [],
+			"requests": [
+				{
+					"id": "44feefec-fa7c-4d58-a567-99f04fe87496",
+					"name": "create-pipeline",
+					"url": "{{webAppUrl}}/api/pipeline",
+					"description": "",
+					"data": [],
+					"dataMode": "raw",
+					"headerData": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						}
+					],
+					"method": "POST",
+					"pathVariableData": [],
+					"queryParams": [],
+					"auth": {
+						"oauth2": [
+							{
+								"key": "accessToken",
+								"value": ""
+							},
+							{
+								"key": "tokenType",
+								"value": "Bearer"
+							},
+							{
+								"key": "addTokenTo",
+								"value": "header",
+								"type": "string"
+							}
+						],
+						"type": "oauth2"
+					},
+					"events": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "ba899769-b1af-4022-bfda-5b3598202bba",
+								"type": "text/javascript",
+								"exec": [
+									""
+								]
+							}
+						}
+					],
+					"folder": null,
+					"preRequestScript": null,
+					"tests": null,
+					"currentHelper": "oAuth2",
+					"helperAttributes": {
+						"id": "oAuth2",
+						"accessToken": "",
+						"addTokenTo": "header",
+						"tokenType": "Bearer"
+					},
+					"collectionId": "3d942399-b722-4a76-b6aa-4fba1ccddd3c",
+					"rawModeData": "\"123\"",
+					"headers": "Content-Type: application/json\n",
+					"pathVariables": {}
+				}
+			]
+		}
+	],
+	"environments": [
+		{
+			"id": "9f1b0b3e-e7f5-416a-a3c0-a558caa5cda9",
+			"name": "data-manager",
+			"values": [
+				{
+					"key": "clientId",
+					"value": "",
+					"description": "",
+					"enabled": true
+				},
+				{
+					"key": "tenantId",
+					"value": "",
+					"description": "",
+					"enabled": true
+				},
+				{
+					"value": "",
+					"key": "clientSecretUrlEncoded",
+					"enabled": true
+				},
+				{
+					"key": "webAppUrl",
+					"value": "https://localhost:44338",
+					"description": "",
+					"type": "text",
+					"enabled": true
+				}
+			]
+		}
+	],
+	"headerPresets": [],
+	"globals": []
+}
