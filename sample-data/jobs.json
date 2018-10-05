@@ -42,5 +42,23 @@
                 }
             ]
         }
+    },
+    {
+        "id": "publishToApi",
+        "IsActive": true,
+        "From": [
+            "finalDataset"
+        ],
+        "Specification": {
+            "Stage": "Publish",
+            "Type": "Databricks",
+            "NotebookPath": "/Shared/publish_final_dataset",
+            "NotebookParameters": [
+                {
+                    "Name": "finalDataset",
+                    "DatasetId": "finalDataset"
+                }
+            ]
+        }
     }
 ]

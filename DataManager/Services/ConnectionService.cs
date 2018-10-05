@@ -66,21 +66,32 @@ namespace DataManager.Services
 
         public async Task<string> UpsertDatabricksAsync()
         {
-            var name = _databricksOptions.KeyVaultSecretName;
-            var pythonVersion = $"python{_databricksOptions.PythonVersion}";
+            var name = _databricksOptions.KeyVaultSecretName;            
 
             var service = new AzureDatabricksLinkedService()
             {
                 Domain = _databricksOptions.Endpoint,
-                AccessToken = GetKeyVaultReference(_databricksOptions.KeyVaultSecretName),
-                NewClusterNodeType = _databricksOptions.NodeType,
-                NewClusterNumOfWorker = _databricksOptions.NumberOfWorkers,
-                NewClusterVersion = _databricksOptions.RuntimeVersion,
-                NewClusterSparkEnvVars = new Dictionary<string, object>
+                AccessToken = GetKeyVaultReference(_databricksOptions.KeyVaultSecretName)
+            };
+
+            if (!string.IsNullOrWhiteSpace(_databricksOptions.ExistingClusterId))
+            {
+                service.ExistingClusterId = _databricksOptions.ExistingClusterId;
+            }
+            else
+            {
+                var newCluster = _databricksOptions.NewCluster;
+
+                service.NewClusterNodeType = newCluster.NodeType;
+                service.NewClusterNumOfWorker = newCluster.NumberOfWorkers;
+                service.NewClusterVersion = newCluster.RuntimeVersion;
+
+                var pythonVersion = $"python{newCluster.PythonVersion}";
+                service.NewClusterSparkEnvVars = new Dictionary<string, object>
                 {
                     { "PYSPARK_PYTHON", $"/databricks/{pythonVersion}/bin/{pythonVersion}" }
-                }
-            };
+                };
+            }
 
             await UpsertAsync(name, service);
             return name;
