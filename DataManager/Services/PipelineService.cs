@@ -66,6 +66,7 @@ namespace DataManager.Services
                 pipeline.Activities.Add(activity);
             }
 
+            pipeline.Validate();
             await _dataFactoryService.UpsertAsync(name, pipeline);
         }
 

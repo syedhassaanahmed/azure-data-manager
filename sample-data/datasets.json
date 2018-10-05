@@ -1,0 +1,44 @@
+[
+    {
+        "id": "timeSeriesBlob",
+        "Description": "IoT sensor messages",
+        "Tags": [
+            "iot",
+            "messages",
+            "timeseries"
+        ],
+        "Type": "BlobStorage",
+        "SecretName": "blobStorage",
+        "DataPath": "/data-manager/input/messages_*.json"
+    },
+    {
+        "id": "sqlMetadata",
+        "Description": "IoT sensors metadata",
+        "Tags": [
+            "iot",
+            "sensors",
+            "metadata"
+        ],
+        "Type": "SqlServer",
+        "SecretName": "sqlServer",
+        "DataPath": "dbo.Sensor"
+    },
+    {
+        "id": "csvMetadata",
+        "Description": "IoT sensors metadata CSV",
+        "Type": "BlobStorage",
+        "SecretName": "blobStorage",
+        "DataPath": "/data-manager/output/metadata.csv"
+    },
+    {
+        "id": "finalDataset",
+        "Description": "Transformed sensor messages",
+        "Tags": [
+            "transformed",
+            "final"
+        ],
+        "Type": "BlobStorage",
+        "SecretName": "blobStorage",
+        "DataPath": "/data-manager/output/messages.parquet"
+    }
+]

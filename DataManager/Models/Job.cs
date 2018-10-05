@@ -3,7 +3,6 @@
     public class Job : BaseEntity
     {
         public bool IsActive { get; set; }
-        public string Schedule { get; set; }
         public string[] From { get; set; }
         public string[] To { get; set; }
         public Specification Specification { get; set; }

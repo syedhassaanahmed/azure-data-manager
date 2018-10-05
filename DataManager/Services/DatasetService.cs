@@ -67,10 +67,12 @@ namespace DataManager.Services
             {
                 case ".json":
                     additionalProperties.Add("type", "JsonFormat");
+                    additionalProperties.Add("filePattern", "setOfObjects");
                     break;
                 case ".csv":
                     additionalProperties.Add("type", "TextFormat");
                     additionalProperties.Add("firstRowAsHeader", true);
+                    additionalProperties.Add("columnDelimiter", ",");
                     break;
                 case ".parquet":
                     additionalProperties.Add("type", "ParquetFormat");

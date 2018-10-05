@@ -1,0 +1,46 @@
+[
+    {
+        "id": "copyFromSqlDb",
+        "IsActive": true,
+        "From": [
+            "sqlMetadata"
+        ],
+        "To": [
+            "csvMetadata"
+        ],
+        "Specification": {
+            "Stage": "Ingest",
+            "Type": "Copy"
+        }
+    },
+    {
+        "id": "transformToFinal",
+        "IsActive": true,
+        "From": [
+            "csvMetadata",
+            "timeSeriesBlob"
+        ],
+        "To": [
+            "finalDataset"
+        ],
+        "Specification": {
+            "Stage": "Transform",
+            "Type": "Databricks",
+            "NotebookPath": "/Shared/transform_sensor_messages",
+            "NotebookParameters": [
+                {
+                    "Name": "metadata",
+                    "DatasetId": "csvMetadata"
+                },
+                {
+                    "Name": "timeseries",
+                    "DatasetId": "timeSeriesBlob"
+                },
+                {
+                    "Name": "output",
+                    "DatasetId": "finalDataset"
+                }
+            ]
+        }
+    }
+]
