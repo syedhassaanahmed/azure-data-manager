@@ -25,54 +25,59 @@
 						{
 							"key": "Content-Type",
 							"value": "application/json"
+						},
+						{
+							"key": "Authorization",
+							"value": "Bearer {{bearerToken}}",
+							"description": "",
+							"enabled": true
 						}
 					],
 					"method": "POST",
 					"pathVariableData": [],
 					"queryParams": [],
 					"auth": {
-						"oauth2": [
-							{
-								"key": "accessToken",
-								"value": ""
-							},
-							{
-								"key": "tokenType",
-								"value": "Bearer"
-							},
-							{
-								"key": "addTokenTo",
-								"value": "header",
-								"type": "string"
-							}
-						],
-						"type": "oauth2"
+						"type": "noauth"
 					},
 					"events": [
 						{
 							"listen": "prerequest",
 							"script": {
-								"id": "ba899769-b1af-4022-bfda-5b3598202bba",
+								"id": "c4fffb9a-5a43-4b55-8c57-5bca8e736b49",
 								"type": "text/javascript",
 								"exec": [
-									""
+									"if(pm.globals.get(\"bearerToken\") !== \"\") {",
+									"    pm.sendRequest({",
+									"        url: \"https://login.microsoftonline.com/\" + pm.environment.get(\"tenantId\") + \"/oauth2/token\",",
+									"        method: \"POST\",",
+									"        header: \"Content-Type: application/x-www-form-urlencoded\",",
+									"        body: {",
+									"            mode: \"urlencoded\",",
+									"            urlencoded: [ ",
+									"                {key: \"grant_type\", value: \"authorization_code\", disabled: false},",
+									"                {key: \"client_id\", value: pm.environment.get(\"clientId\"), disabled: false},",
+									"                {key: \"client_secret\", value: encodeURIComponent(pm.environment.get(\"clientSecret\")), disabled: false},",
+									"                {key: \"auth_url\", value: \"https://login.microsoftonline.com/\" + pm.environment.get(\"tenantId\") + \"/oauth2/authorize?resource=\" + pm.environment.get(\"clientId\"), disabled: false},",
+									"                {key: \"redirect_uri\", value: pm.environment.get(\"webAppUrl\"), disabled: false}",
+									"            ]",
+									"        }",
+									"    }, function (err, res) {",
+									"        pm.globals.set(\"bearerToken\", res.json().access_token);",
+									"        console.log(pm.globals.get(\"bearerToken\"));",
+									"    });",
+									"}"
 								]
 							}
 						}
 					],
 					"folder": null,
-					"preRequestScript": null,
+					"preRequestScript": "if(pm.globals.get(\"bearerToken\") !== \"\") {\n    pm.sendRequest({\n        url: \"https://login.microsoftonline.com/\" + pm.environment.get(\"tenantId\") + \"/oauth2/token\",\n        method: \"POST\",\n        header: \"Content-Type: application/x-www-form-urlencoded\",\n        body: {\n            mode: \"urlencoded\",\n            urlencoded: [ \n                {key: \"grant_type\", value: \"authorization_code\", disabled: false},\n                {key: \"client_id\", value: pm.environment.get(\"clientId\"), disabled: false},\n                {key: \"client_secret\", value: encodeURIComponent(pm.environment.get(\"clientSecret\")), disabled: false},\n                {key: \"auth_url\", value: \"https://login.microsoftonline.com/\" + pm.environment.get(\"tenantId\") + \"/oauth2/authorize?resource=\" + pm.environment.get(\"clientId\"), disabled: false},\n                {key: \"redirect_uri\", value: pm.environment.get(\"webAppUrl\"), disabled: false}\n            ]\n        }\n    }, function (err, res) {\n        pm.globals.set(\"bearerToken\", res.json().access_token);\n        console.log(pm.globals.get(\"bearerToken\"));\n    });\n}",
 					"tests": null,
-					"currentHelper": "oAuth2",
-					"helperAttributes": {
-						"id": "oAuth2",
-						"accessToken": "",
-						"addTokenTo": "header",
-						"tokenType": "Bearer"
-					},
+					"currentHelper": null,
+					"helperAttributes": null,
 					"collectionId": "3d942399-b722-4a76-b6aa-4fba1ccddd3c",
 					"rawModeData": "\"123\"",
-					"headers": "Content-Type: application/json\n",
+					"headers": "Content-Type: application/json\nAuthorization: Bearer {{bearerToken}}\n",
 					"pathVariables": {}
 				}
 			]
@@ -97,14 +102,24 @@
 				},
 				{
 					"value": "",
-					"key": "clientSecretUrlEncoded",
+					"key": "clientSecret",
 					"enabled": true
 				},
 				{
 					"key": "webAppUrl",
-					"value": "https://localhost:44338",
+					"value": "",
 					"description": "",
-					"type": "text",
+					"enabled": true
+				}
+			]
+		},
+		{
+			"id": "c149e2c9-9b98-4ead-8f81-87c1262fcb14",
+			"name": "My Workspace - globals",
+			"values": [
+				{
+					"value": "",
+					"key": "bearerToken",
 					"enabled": true
 				}
 			]
