@@ -2,6 +2,7 @@
     {
         "id": "timeSeriesBlob",
         "Description": "IoT sensor messages",
+        "IsDynamic": true,
         "Tags": [
             "iot",
             "messages",

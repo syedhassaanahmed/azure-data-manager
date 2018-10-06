@@ -28,17 +28,13 @@ namespace DataManager.Services
                     case DatasetType.BlobStorage:
                         await _connectionService.UpsertBlobStorageAsync(dataset.SecretName);
 
-                        var format = GetFormat(Path.GetExtension(dataset.DataPath));
-                        var folderPath = Path.GetDirectoryName(dataset.DataPath).Replace("\\", "/");
-                        var fileName = Path.GetFileName(dataset.DataPath);
-
                         ds = new AzureBlobDataset
                         {
                             Description = dataset.Description,
                             LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
-                            FolderPath = folderPath,
-                            FileName = fileName,
-                            Format = format
+                            FolderPath = Path.GetDirectoryName(dataset.DataPath).Replace("\\", "/").TrimStart('/'),
+                            FileName = Path.GetFileName(dataset.DataPath),
+                            Format = GetFormat(Path.GetExtension(dataset.DataPath))
                         };
                         break;
                     case DatasetType.SqlServer:

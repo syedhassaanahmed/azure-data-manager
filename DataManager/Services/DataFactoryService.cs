@@ -49,5 +49,11 @@ namespace DataManager.Services
             await _dataFactoryClient.Pipelines.CreateOrUpdateAsync(_dataFactoryOptions.ResourceGroup,
                     _dataFactoryOptions.Name, name, resource);
         }
+
+        public async Task UpsertAsync(string name, TriggerResource resource)
+        {
+            await _dataFactoryClient.Triggers.CreateOrUpdateAsync(_dataFactoryOptions.ResourceGroup,
+                    _dataFactoryOptions.Name, name, resource);
+        }
     }
 }
