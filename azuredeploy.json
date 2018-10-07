@@ -1,0 +1,74 @@
+{
+    "contentVersion": "1.0.0.0",
+    "$schema": "http://schema.management.azure.com/schemas/2018-05-01/deploymentTemplate.json#",
+    "parameters": {
+        "tenantId": {
+            "type": "string",
+            "metadata": {
+                "description": "Tenant Id for the subscription."
+            }
+        },
+        "dataFactoryName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the data factory. Must be globally unique."
+            }
+        },
+        "keyVaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the key vault. Must be globally unique."
+            }
+        }
+    },
+    "variables": {
+        
+    },
+    "resources": [{
+        "name": "[parameters('dataFactoryName')]",
+        "apiVersion": "2018-06-01",
+        "type": "Microsoft.DataFactory/factories",
+        "location": "[resourceGroup().location]",
+        "identity": {
+            "type": "SystemAssigned"
+        }
+    }, {
+        "name": "[parameters('keyVaultName')]",
+        "apiVersion": "2018-02-14",
+        "type": "Microsoft.KeyVault/vaults",
+        "location": "westeurope",
+        "properties": {
+            "sku": {
+                "family": "A",
+                "name": "Standard"
+            },
+            "tenantId": "[parameters('tenantId')]",
+            "enabledForDeployment": false,
+            "enabledForDiskEncryption": false,
+            "enabledForTemplateDeployment": false,
+            "accessPolicies": [                
+                {
+                    "tenantId": "[parameters('tenantId')]",
+                    "objectId": "[reference(concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName')), '2018-06-01', 'Full').identity.principalId]",
+                    "permissions": {
+                        "keys": [],
+                        "secrets": [
+                            "Get",
+                            "List"
+                        ],
+                        "certificates": []
+                    }
+                }
+            ]            
+        },
+        "dependsOn": [
+            "[resourceId('Microsoft.DataFactory/factories/', parameters('dataFactoryName'))]"
+        ]
+    }],
+    "outputs": {
+        "adfIdentity": {
+            "type":"string",
+            "value": "[reference(concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName')), '2018-06-01', 'Full').identity.principalId]"
+        }
+    }
+}
