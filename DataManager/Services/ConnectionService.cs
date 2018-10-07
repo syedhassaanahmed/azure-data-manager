@@ -9,46 +9,22 @@ namespace DataManager.Services
     public class ConnectionService
     {
         private readonly DataFactoryService _dataFactoryService;
-        private readonly KeyVaultOptions _keyVaultOptions;
+        private readonly KeyVaultService _keyVaultService;
         private readonly DatabricksOptions _databricksOptions;
 
-        public ConnectionService(DataFactoryService dataFactoryService, IOptions<KeyVaultOptions> keyVaultOptions,
+        public ConnectionService(DataFactoryService dataFactoryService, KeyVaultService keyVaultService,
             IOptions<DatabricksOptions> databricksOptions)
         {
             _dataFactoryService = dataFactoryService;
-            _keyVaultOptions = keyVaultOptions.Value;
+            _keyVaultService = keyVaultService;
             _databricksOptions = databricksOptions.Value;
-
-            UpsertKeyVaultAsync().Wait();
-        }
-
-        private async Task UpsertKeyVaultAsync()
-        {
-            var service = new AzureKeyVaultLinkedService()
-            {
-                BaseUrl = $"https://{_keyVaultOptions.Name}.vault.azure.net/"
-            };
-
-            await UpsertAsync(_keyVaultOptions.Name, service);
-        }
-
-        private AzureKeyVaultSecretReference GetKeyVaultReference(string name)
-        {
-            return new AzureKeyVaultSecretReference
-            {
-                SecretName = name,
-                Store = new LinkedServiceReference
-                {
-                    ReferenceName = _keyVaultOptions.Name
-                }
-            };
         }
 
         public async Task UpsertBlobStorageAsync(string name)
         {
             var service = new AzureBlobStorageLinkedService()
             {
-                ConnectionString = GetKeyVaultReference(name)
+                ConnectionString = _keyVaultService.GetKeyVaultReference(name)
             };
 
             await UpsertAsync(name, service);
@@ -58,7 +34,7 @@ namespace DataManager.Services
         {
             var service = new AzureSqlDatabaseLinkedService()
             {
-                ConnectionString = GetKeyVaultReference(name)
+                ConnectionString = _keyVaultService.GetKeyVaultReference(name)
             };
 
             await UpsertAsync(name, service);
@@ -71,7 +47,7 @@ namespace DataManager.Services
             var service = new AzureDatabricksLinkedService()
             {
                 Domain = _databricksOptions.Endpoint,
-                AccessToken = GetKeyVaultReference(_databricksOptions.KeyVaultSecretName)
+                AccessToken = _keyVaultService.GetKeyVaultReference(_databricksOptions.KeyVaultSecretName)
             };
 
             if (!string.IsNullOrWhiteSpace(_databricksOptions.ExistingClusterId))

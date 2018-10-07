@@ -1,24 +1,24 @@
-﻿using DataManager.Options;
-using Microsoft.Azure.Management.DataFactory.Models;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Azure.Management.DataFactory.Models;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace DataManager.Services
 {
     public class TriggerService
     {        
-        private readonly DataFactoryOptions _dataFactoryOptions;
+        private readonly KeyVaultService _keyVaultService;
 
-        public TriggerService(IOptions<DataFactoryOptions> dataFactoryOptions)
+        public TriggerService(KeyVaultService keyVaultService)
         {
-            _dataFactoryOptions = dataFactoryOptions.Value;
+            _keyVaultService = keyVaultService;
         }
 
-        public TriggerResource CreateBlobEventTrigger(string pipelineName, Models.Dataset dataset, string folderParameter, string fileParameter)
+        public async Task<TriggerResource> CreateBlobEventTriggerAsync(string pipelineName, Models.Dataset dataset, 
+            string folderParameter, string fileParameter)
         {
-            var storageAccount = "syahschneider";
+            var storageAccountResourceId = await _keyVaultService.GetStorageAccountResourceIdAsync(dataset.SecretName);
 
             var allFolders = Path.GetDirectoryName(dataset.DataPath).Split("\\").ToList();
             allFolders.Insert(2, "blobs");
@@ -37,7 +37,7 @@ namespace DataManager.Services
                         { fileParameter, "@triggerBody().fileName" }
                     })
                 },
-                Scope = $"/subscriptions/{_dataFactoryOptions.SubscriptionId}/resourceGroups/{_dataFactoryOptions.ResourceGroup}/providers/Microsoft.Storage/storageAccounts/{storageAccount}"
+                Scope = storageAccountResourceId
             };
 
             var resource = new TriggerResource(trigger);

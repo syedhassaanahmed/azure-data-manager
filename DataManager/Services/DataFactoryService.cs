@@ -16,6 +16,9 @@ namespace DataManager.Services
         private readonly DataFactoryOptions _dataFactoryOptions;
         private readonly DataFactoryManagementClient _dataFactoryClient;
 
+        public string SubscriptionId => _dataFactoryOptions.SubscriptionId;
+        public string ResourceGroup => _dataFactoryOptions.ResourceGroup;
+
         public DataFactoryService(IOptions<AzureADOptions> azureAdOptions, IOptions<DataFactoryOptions> dataFactoryOptions)
         {
             _azureAdOptions = azureAdOptions.Value;
@@ -37,7 +40,8 @@ namespace DataManager.Services
 
         private async Task<DataFactoryManagementClient> CreateDataFactoryClientAsync()
         {
-            var accessToken = await GetAuthenticationToken($"https://login.windows.net/{_azureAdOptions.Domain}", "https://management.azure.com/");
+            var accessToken = await GetAuthenticationToken($"https://login.windows.net/{_azureAdOptions.Domain}", 
+                "https://management.azure.com/");
             var cred = new TokenCredentials(accessToken);
             return new DataFactoryManagementClient(cred) { SubscriptionId = _dataFactoryOptions.SubscriptionId };
         }

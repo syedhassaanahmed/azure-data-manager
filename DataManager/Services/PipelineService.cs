@@ -59,8 +59,8 @@ namespace DataManager.Services
                                     pipeline.Parameters.Add(folderParameter, new ParameterSpecification("String"));
                                     pipeline.Parameters.Add(fileParameter, new ParameterSpecification("String"));
 
-                                    var triggerResource = _triggerService.CreateBlobEventTrigger(name, dataset, folderParameter, fileParameter);
-                                    triggers.Add(($"blobTrigger_{dataset.Id}", triggerResource));                
+                                    var triggerResource = await _triggerService.CreateBlobEventTriggerAsync(name, dataset, folderParameter, fileParameter);
+                                    triggers.Add(($"blobTrigger_{dataset.Id}", triggerResource));           
                                 }
                             }
 
