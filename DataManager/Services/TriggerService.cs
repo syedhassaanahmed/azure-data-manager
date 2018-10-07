@@ -1,6 +1,5 @@
 ﻿using Microsoft.Azure.Management.DataFactory.Models;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -15,26 +14,25 @@ namespace DataManager.Services
             _keyVaultService = keyVaultService;
         }
 
-        public async Task<TriggerResource> CreateBlobEventTriggerAsync(string pipelineName, Models.Dataset dataset, 
-            string folderParameter, string fileParameter)
+        public async Task<TriggerResource> CreateBlobEventTriggerAsync(string pipelineName, Models.Dataset dataset)
         {
             var storageAccountResourceId = await _keyVaultService.GetStorageAccountResourceIdAsync(dataset.SecretName);
 
-            var allFolders = Path.GetDirectoryName(dataset.DataPath).Split("\\").ToList();
+            var allFolders = dataset.FolderPath.Split("/").ToList();
             allFolders.Insert(2, "blobs");
             var beginsWith = string.Join("/", allFolders) + "/";
 
             var trigger = new BlobEventsTrigger
             {
                 BlobPathBeginsWith = beginsWith,
-                BlobPathEndsWith = Path.GetExtension(dataset.DataPath),
+                BlobPathEndsWith = dataset.FileExtension,
                 Events = new List<string> { "Microsoft.Storage.BlobCreated" },
                 Pipelines = new List<TriggerPipelineReference>
                 {
                     new TriggerPipelineReference(new PipelineReference(pipelineName), new Dictionary<string, object>
                     {
-                        { folderParameter, "@triggerBody().folderPath" },
-                        { fileParameter, "@triggerBody().fileName" }
+                        { dataset.FolderParameter, "@triggerBody().folderPath" },
+                        { dataset.FileParameter, "@triggerBody().fileName" }
                     })
                 },
                 Scope = storageAccountResourceId

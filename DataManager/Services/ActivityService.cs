@@ -1,5 +1,7 @@
-﻿using Microsoft.Azure.Management.DataFactory.Models;
+﻿using DataManager.Models;
+using Microsoft.Azure.Management.DataFactory.Models;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DataManager.Services
@@ -13,29 +15,67 @@ namespace DataManager.Services
             _connectionService = connectionService;
         }
 
-        public async Task<ExecutionActivity> CreateDatabricksAsync(string name, string path, Dictionary<string, object> parameters)
+        public async Task<IList<Activity>> CreateAllActivitiesAsync(IEnumerable<Job> activeJobs, IEnumerable<Models.Dataset> allDatasets)
         {
-            var databricksName = await _connectionService.UpsertDatabricksAsync();
+            var activities = new List<Activity>();
 
-            return new DatabricksNotebookActivity
+            foreach (var job in activeJobs)
             {
-                Name = name,
-                LinkedServiceName = new LinkedServiceReference { ReferenceName = databricksName },
-                NotebookPath = path,
-                BaseParameters = parameters
-            };
+                ExecutionActivity activity = null;
+
+                switch (job.Specification.Type)
+                {
+                    case JobType.Databricks:
+                        {
+                            var notebookParameters = new Dictionary<string, object>();
+                            foreach (var p in job.Specification.NotebookParameters)
+                            {
+                                var dataset = allDatasets.First(x => x.Id == p.DatasetId);
+                                notebookParameters.Add(p.Name, dataset.DataPathExpression);
+                            }
+
+                            var databricksName = await _connectionService.UpsertDatabricksAsync();
+
+                            activity = new DatabricksNotebookActivity
+                            {
+                                Name = job.Id,
+                                LinkedServiceName = new LinkedServiceReference { ReferenceName = databricksName },
+                                NotebookPath = job.Specification.NotebookPath,
+                                BaseParameters = notebookParameters
+                            };
+                        }
+                        break;
+                    case JobType.Copy:
+                        {
+                            activity = new CopyActivity
+                            {
+                                Name = job.Id,
+                                Inputs = new List<DatasetReference> { new DatasetReference { ReferenceName = job.From.First() } },
+                                Outputs = new List<DatasetReference> { new DatasetReference { ReferenceName = job.To.First() } },
+                                Source = new BlobSource { },
+                                Sink = new BlobSink { }
+                            };
+                        }
+                        break;
+                }
+
+                activity.DependsOn = GetDependencies(job, activeJobs);
+                activity.Validate();
+                activities.Add(activity);
+            }
+            
+            return activities;
         }
 
-        public ExecutionActivity CreateCopy(string name, string from, string to)
+        private static IList<ActivityDependency> GetDependencies(Job currentJob, IEnumerable<Job> allJobs)
         {
-            return new CopyActivity
-            {
-                Name = name,
-                Inputs = new List<DatasetReference> { new DatasetReference { ReferenceName = from } },
-                Outputs = new List<DatasetReference> { new DatasetReference { ReferenceName = to } },
-                Source = new BlobSource { },
-                Sink = new BlobSink { }
-            };
+            var dependentJobs = from j in allJobs
+                                where j.Id != currentJob.Id && currentJob.From.Any(f => j.To.Contains(f))
+                                select j.Id;
+
+            return dependentJobs.Select(j =>
+                new ActivityDependency { Activity = j, DependencyConditions = new List<string> { "Succeeded" } })
+                .ToList();
         }
     }
 }
