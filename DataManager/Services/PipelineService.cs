@@ -33,14 +33,14 @@ namespace DataManager.Services
             {
                 Activities = activities,
                 Parameters = parameters
-            };            
+            };
 
             pipeline.Validate();
             await _dataFactoryService.UpsertAsync(name, pipeline);
 
             foreach(var trigger in triggers)
             {
-                await _dataFactoryService.UpsertAsync(trigger.name, trigger.resource);
+                await _dataFactoryService.UpsertAndStartTriggerAsync(trigger.name, trigger.resource);
             }
         }        
     }

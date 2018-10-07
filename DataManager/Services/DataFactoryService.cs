@@ -7,6 +7,7 @@ using DataManager.Options;
 using Microsoft.Azure.Management.DataFactory.Models;
 using Microsoft.AspNetCore.Authentication.AzureAD.UI;
 using System;
+using System.Linq;
 
 namespace DataManager.Services
 {
@@ -64,10 +65,23 @@ namespace DataManager.Services
                     _dataFactoryOptions.Name, name, resource);
         }
 
-        public async Task UpsertAsync(string name, TriggerResource resource)
+        public async Task UpsertAndStartTriggerAsync(string name, TriggerResource resource)
         {
+            var existingTriggers = await _dataFactoryClient.Triggers.ListByFactoryAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name);
+            if(existingTriggers.Any(x => x.Name == name))
+            {
+                await _dataFactoryClient.Triggers.StopAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name, name);
+            }
+            
             await _dataFactoryClient.Triggers.CreateOrUpdateAsync(_dataFactoryOptions.ResourceGroup,
                     _dataFactoryOptions.Name, name, resource);
+
+            await _dataFactoryClient.Triggers.StartAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name, name);
         }
+
+        public async Task RunPipelineAsync(string name)
+        {
+            await _dataFactoryClient.Pipelines.CreateRunAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name, name);
+        }        
     }
 }

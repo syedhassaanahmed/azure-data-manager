@@ -50,10 +50,10 @@ namespace DataManager.Web
                 .AddSingleton<CosmosDbService>()
                 .AddSingleton<DataFactoryService>()
                 .AddSingleton<KeyVaultService>()
-                .AddSingleton<ConnectionService>()                
+                .AddSingleton<ConnectionService>()
                 .AddSingleton<TriggerService>()
                 .AddSingleton<DatasetService>()
-                .AddSingleton<ActivityService>()                
+                .AddSingleton<ActivityService>()
                 .AddSingleton<PipelineService>();
         }
 
