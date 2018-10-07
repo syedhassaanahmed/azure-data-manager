@@ -51,7 +51,7 @@ namespace DataManager.Services
                             foreach (var p in job.Specification.NotebookParameters)
                             {
                                 var dataset = allDatasets.First(x => x.Id == p.DatasetId);
-                                var (dataPath, folderParameter, fileParameter) = GetDataPath(dataset, allDatasets);
+                                var (dataPath, folderParameter, fileParameter) = GetDataPath(dataset);
                                 notebookParameters.Add(p.Name, dataPath);
 
                                 if (dataset.IsDynamic)
@@ -75,6 +75,7 @@ namespace DataManager.Services
                 }
 
                 activity.DependsOn = GetDependencies(job, activeJobs);
+                activity.Validate();
                 pipeline.Activities.Add(activity);
             }
 
@@ -87,8 +88,8 @@ namespace DataManager.Services
             }
         }
 
-        private (string dataPath, string folderParameter, string fileParameter) GetDataPath(
-            Models.Dataset dataset, IEnumerable<Models.Dataset> allDatasets)
+        private static (string dataPath, string folderParameter, string fileParameter) GetDataPath(
+            Models.Dataset dataset)
         {
             if(!dataset.IsDynamic)
                 return (dataset.DataPath, "", "");
@@ -110,66 +111,5 @@ namespace DataManager.Services
                 new ActivityDependency { Activity = j, DependencyConditions = new List<string> { "Succeeded" } })
                 .ToList();
         }
-
-        /*public void RunAll()
-        {
-            foreach (var item in _pipelineNameRunIdList)
-            {
-                var resultBody = DataFactoryService.Current.DataFactoryClient.Pipelines.CreateRunWithHttpMessagesAsync(
-                    Configuration.ResourceGroupName, Configuration.DataFactoryName, item.Key).Result.Body;
-            }
-        }
-
-        public void RunOne(string name)
-        {
-            var resultBody = DataFactoryService.Current.DataFactoryClient.Pipelines.CreateRunWithHttpMessagesAsync(
-                Configuration.ResourceGroupName, Configuration.DataFactoryName, name).Result.Body;
-        }
-
-        public IEnumerable<(string Name, string Status)> GetPipelineStatuses()
-        {
-            foreach (var item in _pipelineNameRunIdList)
-            {
-                var run = DataFactoryService.Current.DataFactoryClient.PipelineRuns.Get(Configuration.ResourceGroupName, 
-                    Configuration.DataFactoryName, item.Value);
-
-                yield return (item.Key, run.Status); // InProgress , Succeeded , Failed
-            }
-        }
-
-        public void ClearSuccessfullyFinishedPipelines()
-        {
-            foreach (var item in _pipelineNameRunIdList)
-            {
-                var runs = DataFactoryService.Current.DataFactoryClient.ActivityRuns.QueryByPipelineRun(
-                    Configuration.ResourceGroupName, Configuration.DataFactoryName, item.Value, new RunFilterParameters()).Value;
-
-                foreach (var pipeline in runs.Where(e => e.Status == "Succeeded"))
-                {
-                    DataFactoryService.Current.DataFactoryClient.Pipelines.Delete(Configuration.ResourceGroupName, 
-                        Configuration.DataFactoryName, pipeline.PipelineName);
-                }
-            }
-        }
-
-        public void RemovePipeline(string name)
-        {
-            DataFactoryService.Current.DataFactoryClient.Pipelines.Delete(Configuration.ResourceGroupName, 
-                Configuration.DataFactoryName, name);
-        }
-
-        public void RaiseAlertForFailedPipelines()
-        {
-            foreach (var item in _pipelineNameRunIdList)
-            {
-                var runs = DataFactoryService.Current.DataFactoryClient.ActivityRuns.QueryByPipelineRun(
-                    Configuration.ResourceGroupName, Configuration.DataFactoryName, item.Value, new RunFilterParameters()).Value;
-
-                foreach (var pipeline in runs.Where(e => e.Status == "Failed"))
-                {
-                    // RAISE ALERT
-                }
-            }
-        }*/
     }
 }

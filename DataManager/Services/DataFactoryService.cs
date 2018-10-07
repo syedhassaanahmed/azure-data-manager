@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DataManager.Options;
 using Microsoft.Azure.Management.DataFactory.Models;
 using Microsoft.AspNetCore.Authentication.AzureAD.UI;
+using System;
 
 namespace DataManager.Services
 {
@@ -19,16 +20,25 @@ namespace DataManager.Services
         {
             _azureAdOptions = azureAdOptions.Value;
             _dataFactoryOptions = dataFactoryOptions.Value;
-
             _dataFactoryClient = CreateDataFactoryClientAsync().Result;
+        }
+
+        public async Task<string> GetAuthenticationToken(string authority, string resource, string scope = "")
+        {
+            var authContext = new AuthenticationContext(authority);
+            var clientCred = new ClientCredential(_azureAdOptions.ClientId, _azureAdOptions.ClientSecret);
+            var result = await authContext.AcquireTokenAsync(resource, clientCred);
+
+            if (result == null)
+                throw new InvalidOperationException("Failed to obtain the JWT token");
+
+            return result.AccessToken;
         }
 
         private async Task<DataFactoryManagementClient> CreateDataFactoryClientAsync()
         {
-            var context = new AuthenticationContext($"https://login.windows.net/{_azureAdOptions.Domain}");
-            var cc = new ClientCredential(_azureAdOptions.ClientId, _azureAdOptions.ClientSecret);
-            var result = await context.AcquireTokenAsync("https://management.azure.com/", cc);
-            var cred = new TokenCredentials(result.AccessToken);
+            var accessToken = await GetAuthenticationToken($"https://login.windows.net/{_azureAdOptions.Domain}", "https://management.azure.com/");
+            var cred = new TokenCredentials(accessToken);
             return new DataFactoryManagementClient(cred) { SubscriptionId = _dataFactoryOptions.SubscriptionId };
         }
 

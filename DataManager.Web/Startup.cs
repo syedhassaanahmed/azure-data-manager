@@ -49,10 +49,11 @@ namespace DataManager.Web
                 .Configure<DatabricksOptions>(Configuration.GetSection("Databricks"))
                 .AddSingleton<CosmosDbService>()
                 .AddSingleton<DataFactoryService>()
-                .AddSingleton<ConnectionService>()
-                .AddSingleton<DatasetService>()
-                .AddSingleton<ActivityService>()
+                .AddSingleton<KeyVaultService>()
+                .AddSingleton<ConnectionService>()                
                 .AddSingleton<TriggerService>()
+                .AddSingleton<DatasetService>()
+                .AddSingleton<ActivityService>()                
                 .AddSingleton<PipelineService>();
         }
 
