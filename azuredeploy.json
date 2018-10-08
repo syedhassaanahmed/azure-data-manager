@@ -27,7 +27,7 @@
             "type": "string",
             "defaultValue": "datamanager-sqlserver",
             "metadata": {
-                "description": "Name of SQL Server"
+                "description": "Name of SQL Server. Must be globally unique."
             }
         },
         "sqlDBName": {
@@ -136,19 +136,6 @@
                         "maxSizeBytes": "1073741824",
                         "requestedServiceObjectiveName": "Basic"
                     }
-                },
-                {
-                    "name": "AllowAllWindowsAzureIps",
-                    "apiVersion": "2018-06-01-preview",
-                    "type": "firewallrules",
-                    "location": "[resourceGroup().location]",
-                    "dependsOn": [
-                        "[parameters('sqlServerName')]"
-                    ],
-                    "properties": {
-                        "endIpAddress": "0.0.0.0",
-                        "startIpAddress": "0.0.0.0"
-                    }
                 }
             ]
         },
@@ -156,7 +143,7 @@
             "name": "[parameters('keyVaultName')]",
             "apiVersion": "2018-02-14",
             "type": "Microsoft.KeyVault/vaults",
-            "location": "westeurope",
+            "location": "[resourceGroup().location]",
             "properties": {
                 "sku": {
                     "family": "A",
@@ -265,11 +252,5 @@
                 "[variables('keyVaultLinkedReferenceId')]"
             ]
         }
-    ],
-    "outputs": {
-        "sqlServerFqdn": {
-            "type": "string",
-            "value": "[reference(concat('Microsoft.Sql/servers/', parameters('sqlServerName'))).fullyQualifiedDomainName]"
-        }
-    }
+    ]
 }
