@@ -1,4 +1,5 @@
-﻿using DataManager.Options;
+﻿using DataManager.Models;
+using DataManager.Options;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using Microsoft.Extensions.Options;
@@ -24,7 +25,7 @@ namespace DataManager.Services
         private async Task InitializeAsync()
         {
             await _documentClient.CreateDatabaseIfNotExistsAsync(new Database { Id = _cosmosDbOptions.Database });
-        }
+        }        
 
         private async Task<Uri> UpsertCollectionAsync(string collection)
         {
@@ -37,10 +38,18 @@ namespace DataManager.Services
         }
 
         public async Task<IEnumerable<T>> ReadAllAsync<T>(string collection)
+            where T : BaseEntity
         {
             var collectionLink = await UpsertCollectionAsync(collection);
             var feedOptions = new FeedOptions { MaxItemCount = -1 };
             return _documentClient.CreateDocumentQuery<T>(collectionLink, feedOptions);
+        }
+
+        public async Task UpsertAsync<T>(string collection, T document)
+            where T : BaseEntity
+        {
+            var collectionLink = await UpsertCollectionAsync(collection);
+            await _documentClient.UpsertDocumentAsync(collectionLink, document);
         }
     }
 }

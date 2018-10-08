@@ -47,8 +47,8 @@ namespace DataManager.Services
                             activity = new CopyActivity
                             {
                                 Name = job.Id,
-                                Inputs = new List<DatasetReference> { new DatasetReference { ReferenceName = job.From.First() } },
-                                Outputs = new List<DatasetReference> { new DatasetReference { ReferenceName = job.To.First() } },
+                                Inputs = new List<DatasetReference> { new DatasetReference { ReferenceName = job.From.Single() } },
+                                Outputs = new List<DatasetReference> { new DatasetReference { ReferenceName = job.To.Single() } },
                                 Source = new BlobSource { },
                                 Sink = new BlobSink { }
                             };

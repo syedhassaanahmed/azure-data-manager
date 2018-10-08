@@ -1,4 +1,5 @@
-﻿using DataManager.Options;
+﻿using DataManager.Models;
+using DataManager.Options;
 using DataManager.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -7,6 +8,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace DataManager.Web
 {
@@ -56,6 +63,37 @@ namespace DataManager.Web
                 .AddSingleton<DatasetService>()
                 .AddSingleton<ActivityService>()
                 .AddSingleton<PipelineService>();
+            
+            if (Configuration.GetValue<bool>("LoadSampleData"))
+            {
+                var cosmosDbService = services.BuildServiceProvider().GetService<CosmosDbService>();
+                LoadSampleDataAsync(cosmosDbService).Wait();
+            }
+        }
+
+        private async Task LoadSampleDataAsync(CosmosDbService cosmosDbService)
+        {
+            await Task.WhenAll(
+                    LoadSampleDataAsync<Dataset>(cosmosDbService, "dataset", "datasets.json"),
+                    LoadSampleDataAsync<Job>(cosmosDbService, "job", "jobs.json")
+            );
+        }
+
+        private async Task LoadSampleDataAsync<T>(CosmosDbService cosmosDbService, string collection, string fileName)
+            where T : BaseEntity
+        {
+            var assembly = GetType().Assembly;
+            var resourceName = assembly.GetManifestResourceNames().Single(r => r.EndsWith(fileName));
+
+            var stream = assembly.GetManifestResourceStream(resourceName);
+            using (var streamReader = new StreamReader(stream, Encoding.UTF8))
+            using (var jsonReader = new JsonTextReader(streamReader))
+            {
+                var serializer = new JsonSerializer();
+                var documents = serializer.Deserialize<IEnumerable<T>>(jsonReader);
+                var tasks = documents.Select(d => cosmosDbService.UpsertAsync(collection, d));
+                await Task.WhenAll(tasks);
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
