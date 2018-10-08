@@ -17,9 +17,6 @@ namespace DataManager.Services
         private readonly DataFactoryOptions _dataFactoryOptions;
         private readonly DataFactoryManagementClient _dataFactoryClient;
 
-        public string SubscriptionId => _dataFactoryOptions.SubscriptionId;
-        public string ResourceGroup => _dataFactoryOptions.ResourceGroup;
-
         public DataFactoryService(IOptions<AzureADOptions> azureAdOptions, IOptions<DataFactoryOptions> dataFactoryOptions)
         {
             _azureAdOptions = azureAdOptions.Value;
@@ -27,7 +24,7 @@ namespace DataManager.Services
             _dataFactoryClient = CreateDataFactoryClientAsync().Result;
         }
 
-        public async Task<string> GetAuthenticationToken(string authority, string resource, string scope = "")
+        private async Task<string> GetAuthenticationToken(string authority, string resource, string scope = "")
         {
             var authContext = new AuthenticationContext(authority);
             var clientCred = new ClientCredential(_azureAdOptions.ClientId, _azureAdOptions.ClientSecret);

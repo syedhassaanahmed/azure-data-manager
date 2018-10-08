@@ -26,14 +26,19 @@ namespace DataManager.Services
             await _documentClient.CreateDatabaseIfNotExistsAsync(new Database { Id = _cosmosDbOptions.Database });
         }
 
-        public async Task<IEnumerable<T>> ReadAllAsync<T>(string collection)
+        private async Task<Uri> UpsertCollectionAsync(string collection)
         {
             var databaseLink = UriFactory.CreateDatabaseUri(_cosmosDbOptions.Database);
             await _documentClient.CreateDocumentCollectionIfNotExistsAsync(databaseLink,
                  new DocumentCollection { Id = collection },
                  new RequestOptions { OfferThroughput = _cosmosDbOptions.DefaultThroughput });
 
-            var collectionLink = UriFactory.CreateDocumentCollectionUri(_cosmosDbOptions.Database, collection);
+            return UriFactory.CreateDocumentCollectionUri(_cosmosDbOptions.Database, collection);
+        }
+
+        public async Task<IEnumerable<T>> ReadAllAsync<T>(string collection)
+        {
+            var collectionLink = await UpsertCollectionAsync(collection);
             var feedOptions = new FeedOptions { MaxItemCount = -1 };
             return _documentClient.CreateDocumentQuery<T>(collectionLink, feedOptions);
         }

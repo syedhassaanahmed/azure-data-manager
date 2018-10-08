@@ -17,7 +17,8 @@ namespace DataManager.Web
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables();
 
             if (env.IsDevelopment())
             {
@@ -46,10 +47,10 @@ namespace DataManager.Web
                 .Configure<CosmosDbOptions>(Configuration.GetSection("CosmosDb"))
                 .Configure<DataFactoryOptions>(Configuration.GetSection("DataFactory"))
                 .Configure<KeyVaultOptions>(Configuration.GetSection("KeyVault"))
+                .Configure<StorageAccountOptions>(Configuration.GetSection("StorageAccount"))
                 .Configure<DatabricksOptions>(Configuration.GetSection("Databricks"))
                 .AddSingleton<CosmosDbService>()
                 .AddSingleton<DataFactoryService>()
-                .AddSingleton<KeyVaultService>()
                 .AddSingleton<ConnectionService>()
                 .AddSingleton<TriggerService>()
                 .AddSingleton<DatasetService>()

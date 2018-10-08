@@ -1,22 +1,25 @@
-﻿using Microsoft.Azure.Management.DataFactory.Models;
+﻿using DataManager.Options;
+using Microsoft.Azure.Management.DataFactory.Models;
+using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace DataManager.Services
 {
     public class TriggerService
-    {        
-        private readonly KeyVaultService _keyVaultService;
+    {
+        private readonly DataFactoryOptions _dataFactoryOptions;
+        private readonly StorageAccountOptions _storageAccountOptions;
 
-        public TriggerService(KeyVaultService keyVaultService)
+        public TriggerService(IOptions<DataFactoryOptions> dataFactoryOptions, IOptions<StorageAccountOptions> storageAccountOptions)
         {
-            _keyVaultService = keyVaultService;
+            _dataFactoryOptions = dataFactoryOptions.Value;
+            _storageAccountOptions = storageAccountOptions.Value;
         }
 
-        public async Task<TriggerResource> CreateBlobEventTriggerAsync(string pipelineName, Models.Dataset dataset)
+        public TriggerResource CreateBlobEventTrigger(string pipelineName, Models.Dataset dataset)
         {
-            var storageAccountResourceId = await _keyVaultService.GetStorageAccountResourceIdAsync(dataset.SecretName);
+            var storageAccountResourceId = $"/subscriptions/{_dataFactoryOptions.SubscriptionId}/resourceGroups/{_dataFactoryOptions.ResourceGroup}/providers/Microsoft.Storage/storageAccounts/{_storageAccountOptions.Name}";
 
             var allFolders = dataset.FolderPath.Split("/").ToList();
             allFolders.Insert(2, "blobs");
