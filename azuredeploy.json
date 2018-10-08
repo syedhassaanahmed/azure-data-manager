@@ -14,6 +14,13 @@
                 "description": "Name of the data factory. Must be globally unique."
             }
         },
+        "storageAccountSecretName": {
+            "type": "string",
+            "defaultValue": "blobStorage",
+            "metadata": {
+                "description": "Secret Name of the storage account in the key vault."
+            }
+        },
         "keyVaultName": {
             "type": "string",
             "metadata": {
@@ -22,50 +29,97 @@
         }
     },
     "variables": {
-        
+        "storageAccountName": "[uniqueString(resourceGroup().id)]",
+        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
     },
-    "resources": [{
-        "name": "[parameters('dataFactoryName')]",
-        "apiVersion": "2018-06-01",
-        "type": "Microsoft.DataFactory/factories",
-        "location": "[resourceGroup().location]",
-        "identity": {
-            "type": "SystemAssigned"
-        }
-    }, {
-        "name": "[parameters('keyVaultName')]",
-        "apiVersion": "2018-02-14",
-        "type": "Microsoft.KeyVault/vaults",
-        "location": "westeurope",
-        "properties": {
-            "sku": {
-                "family": "A",
-                "name": "Standard"
-            },
-            "tenantId": "[parameters('tenantId')]",
-            "enabledForDeployment": false,
-            "enabledForDiskEncryption": false,
-            "enabledForTemplateDeployment": false,
-            "accessPolicies": [                
-                {
-                    "tenantId": "[parameters('tenantId')]",
-                    "objectId": "[reference(concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName')), '2018-06-01', 'Full').identity.principalId]",
-                    "permissions": {
-                        "secrets": [
-                            "Get",
-                            "List"
-                        ]
-                    }
-                }
-            ]            
+    "resources": [
+        {
+            "name": "[parameters('dataFactoryName')]",
+            "apiVersion": "2018-06-01",
+            "type": "Microsoft.DataFactory/factories",
+            "location": "[resourceGroup().location]",
+            "identity": {
+                "type": "SystemAssigned"
+            }
         },
-        "dependsOn": [
-            "[resourceId('Microsoft.DataFactory/factories/', parameters('dataFactoryName'))]"
-        ]
-    }],
+        {
+            "name": "[variables('storageAccountName')]",
+            "apiVersion": "2018-07-01",
+            "type": "Microsoft.Storage/storageAccounts",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "defaultAction": "Allow"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "accessTier": "Hot",
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "enabled": true
+                        },
+                        "blob": {
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                }
+            }
+        },
+        {
+            "name": "[parameters('keyVaultName')]",
+            "apiVersion": "2018-02-14",
+            "type": "Microsoft.KeyVault/vaults",
+            "location": "westeurope",
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "Standard"
+                },
+                "tenantId": "[parameters('tenantId')]",
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": false,
+                "accessPolicies": [
+                    {
+                        "tenantId": "[parameters('tenantId')]",
+                        "objectId": "[reference(concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName')), '2018-06-01', 'Full').identity.principalId]",
+                        "permissions": {
+                            "secrets": [
+                                "Get",
+                                "List"
+                            ]
+                        }
+                    }
+                ]
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.DataFactory/factories/', parameters('dataFactoryName'))]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('keyVaultName'), '/', parameters('storageAccountSecretName'))]",
+            "apiVersion": "2018-02-14",
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "properties": {
+                "contentType": "string",
+                "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountId'),'2018-07-01').keys[0].value)]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+            ]
+        }
+    ],
     "outputs": {
         "adfIdentity": {
-            "type":"string",
+            "type": "string",
             "value": "[reference(concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName')), '2018-06-01', 'Full').identity.principalId]"
         }
     }
