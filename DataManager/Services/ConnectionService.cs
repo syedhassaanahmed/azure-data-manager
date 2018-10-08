@@ -35,11 +35,11 @@ namespace DataManager.Services
             await UpsertAsync(_keyVaultOptions.Name, service);
         }
 
-        private AzureKeyVaultSecretReference GetKeyVaultReference(string name)
+        private AzureKeyVaultSecretReference GetKeyVaultReference(string secretName)
         {
             return new AzureKeyVaultSecretReference
             {
-                SecretName = name,
+                SecretName = secretName,
                 Store = new LinkedServiceReference
                 {
                     ReferenceName = _keyVaultOptions.Name
@@ -77,24 +77,24 @@ namespace DataManager.Services
             await UpsertAsync(DatabricksName, service);
         }
 
-        public async Task UpsertBlobStorageAsync(string name)
+        public async Task UpsertBlobStorageAsync(string secretName)
         {
             var service = new AzureBlobStorageLinkedService()
             {
-                ConnectionString = GetKeyVaultReference(name)
+                ConnectionString = GetKeyVaultReference(secretName)
             };
 
-            await UpsertAsync(name, service);
+            await UpsertAsync(secretName, service);
         }
 
-        public async Task UpsertSqlServerAsync(string name)
+        public async Task UpsertSqlServerAsync(string secretName)
         {
             var service = new AzureSqlDatabaseLinkedService()
             {
-                ConnectionString = GetKeyVaultReference(name)
+                ConnectionString = GetKeyVaultReference(secretName)
             };
 
-            await UpsertAsync(name, service);
+            await UpsertAsync(secretName, service);
         }
 
         private async Task UpsertAsync(string name, LinkedService service)

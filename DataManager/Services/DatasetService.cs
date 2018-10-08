@@ -84,7 +84,7 @@ namespace DataManager.Services
         {
             var additionalProperties = new Dictionary<string, object>();
 
-            switch (extension)
+            switch (extension.ToLowerInvariant())
             {
                 case ".json":
                     additionalProperties.Add("type", "JsonFormat");
