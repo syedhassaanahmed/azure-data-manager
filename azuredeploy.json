@@ -4,12 +4,14 @@
     "parameters": {
         "dataFactoryName": {
             "type": "string",
+            "defaultValue": "datamanager-adf",
             "metadata": {
                 "description": "Name of the data factory. Must be globally unique."
             }
         },
         "storageAccountPrefix": {
             "type": "string",
+            "defaultValue": "datamanager",
             "metadata": {
                 "description": "Prefix to be used in storage account name."
             }
@@ -21,8 +23,43 @@
                 "description": "Secret Name of the storage account in key vault."
             }
         },
+        "sqlServerName": {
+            "type": "string",
+            "defaultValue": "datamanager-sqlserver",
+            "metadata": {
+                "description": "Name of SQL Server"
+            }
+        },
+        "sqlDBName": {
+            "type": "string",
+            "defaultValue": "datamanager-sqldb",
+            "metadata": {
+                "description": "Name of SQL Database"
+            }
+        },
+        "sqlAdminUser": {
+            "type": "string",
+            "defaultValue": "datamanager-sqluser",
+            "metadata": {
+                "description": "Admin user of SQL Server"
+            }
+        },
+        "sqlAdminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password of the admin user of SQL Server"
+            }
+        },
+        "sqlServerSecretName": {
+            "type": "string",
+            "defaultValue": "sqlServer",
+            "metadata": {
+                "description": "Secret Name of the SQL Server in key vault."
+            }
+        },
         "keyVaultName": {
             "type": "string",
+            "defaultValue": "datamanager-kv",
             "metadata": {
                 "description": "Name of the key vault. Must be globally unique."
             }
@@ -33,7 +70,7 @@
         "dataFactoryId": "[resourceId('Microsoft.DataFactory/factories/', parameters('dataFactoryName'))]",
         "storageAccountName": "[concat(parameters('storageAccountPrefix'), uniqueString(resourceGroup().id))]",
         "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
-        "keyVaultId": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]", 
+        "keyVaultId": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
         "keyVaultLinkedReferenceId": "[concat(variables('dataFactoryId'), '/linkedServices/', parameters('keyVaultName'))]"
     },
     "resources": [
@@ -65,9 +102,6 @@
                 "accessTier": "Hot",
                 "encryption": {
                     "services": {
-                        "file": {
-                            "enabled": true
-                        },
                         "blob": {
                             "enabled": true
                         }
@@ -75,6 +109,48 @@
                     "keySource": "Microsoft.Storage"
                 }
             }
+        },
+        {
+            "name": "[parameters('sqlServerName')]",
+            "apiVersion": "2018-06-01-preview",
+            "type": "Microsoft.Sql/servers",
+            "location": "[resourceGroup().location]",
+            "kind": "v12.0",
+            "properties": {
+                "administratorLogin": "[parameters('sqlAdminUser')]",
+                "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
+                "version": "12.0"
+            },
+            "resources": [
+                {
+                    "name": "[parameters('sqlDBName')]",
+                    "apiVersion": "2018-06-01-preview",
+                    "type": "databases",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[parameters('sqlServerName')]"
+                    ],
+                    "properties": {
+                        "edition": "Basic",
+                        "collation": "SQL_Latin1_General_CP1_CI_AS",
+                        "maxSizeBytes": "1073741824",
+                        "requestedServiceObjectiveName": "Basic"
+                    }
+                },
+                {
+                    "name": "AllowAllWindowsAzureIps",
+                    "apiVersion": "2018-06-01-preview",
+                    "type": "firewallrules",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[parameters('sqlServerName')]"
+                    ],
+                    "properties": {
+                        "endIpAddress": "0.0.0.0",
+                        "startIpAddress": "0.0.0.0"
+                    }
+                }
+            ]
         },
         {
             "name": "[parameters('keyVaultName')]",
@@ -121,6 +197,19 @@
             ]
         },
         {
+            "name": "[concat(parameters('keyVaultName'), '/', parameters('sqlServerSecretName'))]",
+            "apiVersion": "2018-02-14",
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "properties": {
+                "contentType": "string",
+                "value": "[concat('Data Source=tcp:', reference(concat('Microsoft.Sql/servers/', parameters('sqlServerName'))).fullyQualifiedDomainName, ',1433;Initial Catalog=', parameters('sqlDBName'), ';User Id=', parameters('sqlAdminUser'), '@', reference(concat('Microsoft.Sql/servers/', parameters('sqlServerName'))).fullyQualifiedDomainName, ';Password=', parameters('sqlAdminPassword'), ';')]"
+            },
+            "dependsOn": [
+                "[variables('keyVaultId')]",
+                "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+            ]
+        },
+        {
             "name": "[concat(parameters('dataFactoryName'), '/', parameters('keyVaultName'))]",
             "apiVersion": "2018-06-01",
             "type": "Microsoft.DataFactory/factories/linkedServices",
@@ -154,6 +243,33 @@
             "dependsOn": [
                 "[variables('keyVaultLinkedReferenceId')]"
             ]
+        },
+        {
+            "name": "[concat(parameters('dataFactoryName'), '/', parameters('sqlServerSecretName'))]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "AzureSqlDatabase",
+                "typeProperties": {
+                    "connectionString": {
+                        "type": "AzureKeyVaultSecret",
+                        "store": {
+                            "referenceName": "[parameters('keyVaultName')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "secretName": "[parameters('sqlServerSecretName')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[variables('keyVaultLinkedReferenceId')]"
+            ]
         }
-    ]
+    ],
+    "outputs": {
+        "sqlServerFqdn": {
+            "type": "string",
+            "value": "[reference(concat('Microsoft.Sql/servers/', parameters('sqlServerName'))).fullyQualifiedDomainName]"
+        }
+    }
 }
