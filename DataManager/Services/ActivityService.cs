@@ -2,7 +2,6 @@
 using Microsoft.Azure.Management.DataFactory.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace DataManager.Services
 {
@@ -15,7 +14,7 @@ namespace DataManager.Services
             _connectionService = connectionService;
         }
 
-        public async Task<IList<Activity>> CreateAllActivitiesAsync(IEnumerable<Job> activeJobs, IEnumerable<Models.Dataset> allDatasets)
+        public IList<Activity> CreateAll(IEnumerable<Job> activeJobs, IEnumerable<Models.Dataset> allDatasets)
         {
             var activities = new List<Activity>();
 
@@ -28,18 +27,16 @@ namespace DataManager.Services
                     case JobType.Databricks:
                         {
                             var notebookParameters = new Dictionary<string, object>();
-                            foreach (var p in job.Specification.NotebookParameters)
+                            foreach (var parameter in job.Specification.NotebookParameters)
                             {
-                                var dataset = allDatasets.First(x => x.Id == p.DatasetId);
-                                notebookParameters.Add(p.Name, dataset.DataPathExpression);
+                                var dataset = allDatasets.First(d => d.Id == parameter.DatasetId);
+                                notebookParameters.Add(parameter.Name, dataset.DataPathExpression);
                             }
-
-                            var databricksName = await _connectionService.UpsertDatabricksAsync();
 
                             activity = new DatabricksNotebookActivity
                             {
                                 Name = job.Id,
-                                LinkedServiceName = new LinkedServiceReference { ReferenceName = databricksName },
+                                LinkedServiceName = new LinkedServiceReference { ReferenceName = _connectionService.DatabricksName},
                                 NotebookPath = job.Specification.NotebookPath,
                                 BaseParameters = notebookParameters
                             };

@@ -19,8 +19,6 @@ namespace DataManager.Services
 
         public TriggerResource CreateBlobEventTrigger(string pipelineName, Models.Dataset dataset)
         {
-            var storageAccountResourceId = $"/subscriptions/{_dataFactoryOptions.SubscriptionId}/resourceGroups/{_dataFactoryOptions.ResourceGroup}/providers/Microsoft.Storage/storageAccounts/{_storageAccountOptions.Name}";
-
             var allFolders = dataset.FolderPath.Split("/").ToList();
             allFolders.Insert(2, "blobs");
             var beginsWith = string.Join("/", allFolders) + "/";
@@ -38,7 +36,7 @@ namespace DataManager.Services
                         { dataset.FileParameter, "@triggerBody().fileName" }
                     })
                 },
-                Scope = storageAccountResourceId
+                Scope = $"/subscriptions/{_dataFactoryOptions.SubscriptionId}/resourceGroups/{_dataFactoryOptions.ResourceGroup}/providers/Microsoft.Storage/storageAccounts/{_storageAccountOptions.Name}"
             };
 
             var resource = new TriggerResource(trigger);

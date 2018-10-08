@@ -12,6 +12,8 @@ namespace DataManager.Services
         private readonly KeyVaultOptions _keyVaultOptions;
         private readonly DatabricksOptions _databricksOptions;
 
+        public string DatabricksName => _databricksOptions.KeyVaultSecretName;
+
         public ConnectionService(DataFactoryService dataFactoryService, IOptions<KeyVaultOptions> keyVaultOptions,
             IOptions<DatabricksOptions> databricksOptions)
         {
@@ -20,6 +22,7 @@ namespace DataManager.Services
             _databricksOptions = databricksOptions.Value;
 
             UpsertKeyVaultAsync().Wait();
+            UpsertDatabricksAsync().Wait();
         }
 
         private async Task UpsertKeyVaultAsync()
@@ -44,30 +47,8 @@ namespace DataManager.Services
             };
         }
 
-        public async Task UpsertBlobStorageAsync(string name)
+        private async Task UpsertDatabricksAsync()
         {
-            var service = new AzureBlobStorageLinkedService()
-            {
-                ConnectionString = GetKeyVaultReference(name)
-            };
-
-            await UpsertAsync(name, service);
-        }
-
-        public async Task UpsertSqlServerAsync(string name)
-        {
-            var service = new AzureSqlDatabaseLinkedService()
-            {
-                ConnectionString = GetKeyVaultReference(name)
-            };
-
-            await UpsertAsync(name, service);
-        }
-
-        public async Task<string> UpsertDatabricksAsync()
-        {
-            var name = _databricksOptions.KeyVaultSecretName;            
-
             var service = new AzureDatabricksLinkedService()
             {
                 Domain = _databricksOptions.Endpoint,
@@ -93,8 +74,27 @@ namespace DataManager.Services
                 };
             }
 
+            await UpsertAsync(DatabricksName, service);
+        }
+
+        public async Task UpsertBlobStorageAsync(string name)
+        {
+            var service = new AzureBlobStorageLinkedService()
+            {
+                ConnectionString = GetKeyVaultReference(name)
+            };
+
             await UpsertAsync(name, service);
-            return name;
+        }
+
+        public async Task UpsertSqlServerAsync(string name)
+        {
+            var service = new AzureSqlDatabaseLinkedService()
+            {
+                ConnectionString = GetKeyVaultReference(name)
+            };
+
+            await UpsertAsync(name, service);
         }
 
         private async Task UpsertAsync(string name, LinkedService service)

@@ -26,8 +26,8 @@ namespace DataManager.Services
             var allDatasets = await _cosmosDbService.ReadAllAsync<Models.Dataset>("dataset");
             var (parameters, triggers) = await _datasetService.UpsertAllAsync(name, allDatasets);
 
-            var activeJobs = (await _cosmosDbService.ReadAllAsync<Job>("job")).Where(x => x.IsActive);
-            var activities = await _activityService.CreateAllActivitiesAsync(activeJobs, allDatasets);
+            var activeJobs = (await _cosmosDbService.ReadAllAsync<Job>("job")).Where(j => j.IsActive);
+            var activities = _activityService.CreateAll(activeJobs, allDatasets);
 
             var pipeline = new PipelineResource
             {
@@ -38,10 +38,8 @@ namespace DataManager.Services
             pipeline.Validate();
             await _dataFactoryService.UpsertAsync(name, pipeline);
 
-            foreach(var trigger in triggers)
-            {
-                await _dataFactoryService.UpsertAndStartTriggerAsync(trigger.name, trigger.resource);
-            }
+            var triggerTasks = triggers.Select(t => _dataFactoryService.UpsertAndStartTriggerAsync(t.name, t.resource));
+            await Task.WhenAll(triggerTasks);
         }        
     }
 }

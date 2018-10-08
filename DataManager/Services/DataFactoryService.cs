@@ -65,7 +65,7 @@ namespace DataManager.Services
         public async Task UpsertAndStartTriggerAsync(string name, TriggerResource resource)
         {
             var existingTriggers = await _dataFactoryClient.Triggers.ListByFactoryAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name);
-            if(existingTriggers.Any(x => x.Name == name))
+            if(existingTriggers.Any(t => t.Name == name))
             {
                 await _dataFactoryClient.Triggers.StopAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name, name);
             }

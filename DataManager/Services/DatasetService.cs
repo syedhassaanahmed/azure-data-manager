@@ -1,6 +1,8 @@
 ﻿using DataManager.Models;
 using Microsoft.Azure.Management.DataFactory.Models;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DataManager.Services
@@ -18,57 +20,64 @@ namespace DataManager.Services
             _triggerService = triggerService;
         }
 
-        public async Task<(Dictionary<string, ParameterSpecification>, List<(string name, TriggerResource resource)>)> 
+        public async Task<(IDictionary<string, ParameterSpecification>, List<(string name, TriggerResource resource)>)> 
             UpsertAllAsync(string pipelineName, IEnumerable<Models.Dataset> datasets)
         {
-            var pipelineParameters = new Dictionary<string, ParameterSpecification>();
-            var triggers = new List<(string name, TriggerResource resource)>();
+            var pipelineParameters = new ConcurrentDictionary<string, ParameterSpecification>();
+            var triggers = new ConcurrentBag<(string name, TriggerResource resource)>();
 
-            foreach (var dataset in datasets)
+            var tasks = datasets.Select(d => UpsertAsync(pipelineName, pipelineParameters, triggers, d));
+            await Task.WhenAll(tasks);
+
+            return (pipelineParameters, triggers.ToList());
+        }
+
+        private async Task UpsertAsync(string pipelineName, ConcurrentDictionary<string, ParameterSpecification> pipelineParameters, 
+            ConcurrentBag<(string name, TriggerResource resource)> triggers, Models.Dataset dataset)
+        {
+            Microsoft.Azure.Management.DataFactory.Models.Dataset ds = null;
+            Task connectionTask = Task.CompletedTask;
+
+            switch (dataset.Type)
             {
-                Microsoft.Azure.Management.DataFactory.Models.Dataset ds = null;
+                case DatasetType.BlobStorage:
+                    connectionTask = _connectionService.UpsertBlobStorageAsync(dataset.SecretName);
 
-                switch (dataset.Type)
-                {
-                    case DatasetType.BlobStorage:
-                        await _connectionService.UpsertBlobStorageAsync(dataset.SecretName);
+                    if (dataset.IsDynamic)
+                    {
+                        pipelineParameters.GetOrAdd(dataset.FolderParameter, new ParameterSpecification("String"));
+                        pipelineParameters.GetOrAdd(dataset.FileParameter, new ParameterSpecification("String"));
 
-                        if (dataset.IsDynamic)
-                        {
-                            pipelineParameters.Add(dataset.FolderParameter, new ParameterSpecification("String"));
-                            pipelineParameters.Add(dataset.FileParameter, new ParameterSpecification("String"));
+                        var triggerResource = _triggerService.CreateBlobEventTrigger(pipelineName, dataset);
+                        triggers.Add(($"blobTrigger_{dataset.Id}", triggerResource));
+                    }
 
-                            var triggerResource = _triggerService.CreateBlobEventTrigger(pipelineName, dataset);
-                            triggers.Add(($"blobTrigger_{dataset.Id}", triggerResource));
-                        }
+                    ds = new AzureBlobDataset
+                    {
+                        Description = dataset.Description,
+                        LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
+                        FolderPath = dataset.FolderPath.TrimStart('/'),
+                        FileName = dataset.FileName,
+                        Format = GetFormat(dataset.FileExtension)
+                    };
+                    break;
+                case DatasetType.SqlServer:
+                    connectionTask = _connectionService.UpsertSqlServerAsync(dataset.SecretName);
 
-                        ds = new AzureBlobDataset
-                        {
-                            Description = dataset.Description,
-                            LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
-                            FolderPath = dataset.FolderPath.TrimStart('/'),
-                            FileName = dataset.FileName,
-                            Format = GetFormat(dataset.FileExtension)
-                        };
-                        break;
-                    case DatasetType.SqlServer:
-                        await _connectionService.UpsertSqlServerAsync(dataset.SecretName);
-
-                        ds = new AzureSqlTableDataset
-                        {
-                            LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
-                            TableName = dataset.DataPath
-                        };
-                        break;
-                }
-
-                ds.Annotations = dataset.Tags;
-                var resource = new DatasetResource(ds);
-                resource.Validate();
-                await _dataFactoryService.UpsertAsync(dataset.Id, resource);
+                    ds = new AzureSqlTableDataset
+                    {
+                        LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
+                        TableName = dataset.DataPath
+                    };
+                    break;
             }
 
-            return (pipelineParameters, triggers);
+            ds.Annotations = dataset.Tags;
+            var resource = new DatasetResource(ds);
+            resource.Validate();
+
+            await connectionTask;
+            await _dataFactoryService.UpsertAsync(dataset.Id, resource);
         }
 
         private static DatasetStorageFormat GetFormat(string extension)
