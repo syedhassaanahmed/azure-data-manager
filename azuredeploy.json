@@ -2,23 +2,23 @@
     "contentVersion": "1.0.0.0",
     "$schema": "http://schema.management.azure.com/schemas/2018-05-01/deploymentTemplate.json#",
     "parameters": {
-        "tenantId": {
-            "type": "string",
-            "metadata": {
-                "description": "Tenant Id for the subscription."
-            }
-        },
         "dataFactoryName": {
             "type": "string",
             "metadata": {
                 "description": "Name of the data factory. Must be globally unique."
             }
         },
+        "storageAccountPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix to be used in storage account name."
+            }
+        },
         "storageAccountSecretName": {
             "type": "string",
             "defaultValue": "blobStorage",
             "metadata": {
-                "description": "Secret Name of the storage account in the key vault."
+                "description": "Secret Name of the storage account in key vault."
             }
         },
         "keyVaultName": {
@@ -29,8 +29,12 @@
         }
     },
     "variables": {
-        "storageAccountName": "[uniqueString(resourceGroup().id)]",
-        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+        "tenantId": "[subscription().tenantId]",
+        "dataFactoryId": "[resourceId('Microsoft.DataFactory/factories/', parameters('dataFactoryName'))]",
+        "storageAccountName": "[concat(parameters('storageAccountPrefix'), uniqueString(resourceGroup().id))]",
+        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "keyVaultId": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]", 
+        "keyVaultLinkedReferenceId": "[concat(variables('dataFactoryId'), '/linkedServices/', parameters('keyVaultName'))]"
     },
     "resources": [
         {
@@ -82,13 +86,13 @@
                     "family": "A",
                     "name": "Standard"
                 },
-                "tenantId": "[parameters('tenantId')]",
+                "tenantId": "[variables('tenantId')]",
                 "enabledForDeployment": false,
                 "enabledForDiskEncryption": false,
                 "enabledForTemplateDeployment": false,
                 "accessPolicies": [
                     {
-                        "tenantId": "[parameters('tenantId')]",
+                        "tenantId": "[variables('tenantId')]",
                         "objectId": "[reference(concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName')), '2018-06-01', 'Full').identity.principalId]",
                         "permissions": {
                             "secrets": [
@@ -100,7 +104,7 @@
                 ]
             },
             "dependsOn": [
-                "[resourceId('Microsoft.DataFactory/factories/', parameters('dataFactoryName'))]"
+                "[variables('dataFactoryId')]"
             ]
         },
         {
@@ -112,15 +116,44 @@
                 "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountId'),'2018-07-01').keys[0].value)]"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
-                "[resourceId('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+                "[variables('keyVaultId')]",
+                "[variables('storageAccountId')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('dataFactoryName'), '/', parameters('keyVaultName'))]",
+            "apiVersion": "2018-06-01",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "properties": {
+                "type": "AzureKeyVault",
+                "typeProperties": {
+                    "baseUrl": "[reference(concat('Microsoft.KeyVault/vaults/', parameters('keyVaultName'))).vaultUri]"
+                }
+            },
+            "dependsOn": [
+                "[variables('keyVaultId')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('dataFactoryName'), '/', parameters('storageAccountSecretName'))]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "AzureBlobStorage",
+                "typeProperties": {
+                    "connectionString": {
+                        "type": "AzureKeyVaultSecret",
+                        "store": {
+                            "referenceName": "[parameters('keyVaultName')]",
+                            "type": "LinkedServiceReference"
+                        },
+                        "secretName": "[parameters('storageAccountSecretName')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[variables('keyVaultLinkedReferenceId')]"
             ]
         }
-    ],
-    "outputs": {
-        "adfIdentity": {
-            "type": "string",
-            "value": "[reference(concat('Microsoft.DataFactory/factories/', parameters('dataFactoryName')), '2018-06-01', 'Full').identity.principalId]"
-        }
-    }
+    ]
 }
