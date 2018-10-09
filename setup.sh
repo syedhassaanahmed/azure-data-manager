@@ -4,11 +4,13 @@
 RESOURCE_GROUP=${RESOURCE_GROUP:=data-manager}
 RESOURCE_GROUP_LOCATION=${RESOURCE_GROUP_LOCATION:=westeurope}
 STORAGE_ACCOUNT_PREFIX=${STORAGE_ACCOUNT_PREFIX:=datamanager}
+KEY_VAULT_NAME=${KEY_VAULT_NAME:=datamanager-kv}
+DATABRICKS_CLUSTER_NAME=${DATABRICKS_CLUSTER_NAME:=datamanager-cluster}
+DATABRICKS_SECRET_NAME=${DATABRICKS_SECRET_NAME:=databricks}
 SQL_SERVER_NAME=${SQL_SERVER_NAME:=datamanager-sqlserver}
 SQL_DB_NAME=${SQL_DB_NAME:=datamanager-sqldb}
 SQL_ADMIN_USER=${SQL_ADMIN_USER:=datamanager-sqluser}
 SQL_ADMIN_PASSWORD=${SQL_ADMIN_PASSWORD:='<YourStrong!Passw0rd>'}
-DATABRICKS_CLUSTER_NAME=${DATABRICKS_CLUSTER_NAME:=datamanager-cluster}
 
 # Create resource group if needed
 RG_EXISTS=$(az group exists -n $RESOURCE_GROUP -o tsv)
@@ -17,12 +19,14 @@ if [[ "$RG_EXISTS" != true ]]; then
 fi
 
 # Deploy ARM Template
-# az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json --parameters \
-#     storageAccountPrefix=$STORAGE_ACCOUNT_PREFIX \
-#     sqlServerName=$SQL_SERVER_NAME \
-#     sqlDBName=$SQL_DB_NAME \
-#     sqlAdminUser=$SQL_ADMIN_USER \
-#     sqlAdminPassword=$SQL_ADMIN_PASSWORD
+az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json --parameters \
+    storageAccountPrefix=$STORAGE_ACCOUNT_PREFIX \
+    keyVaultName=$KEY_VAULT_NAME \
+    databricksSecretName=$DATABRICKS_SECRET_NAME \
+    sqlServerName=$SQL_SERVER_NAME \
+    sqlDBName=$SQL_DB_NAME \
+    sqlAdminUser=$SQL_ADMIN_USER \
+    sqlAdminPassword=$SQL_ADMIN_PASSWORD
 
 # Configure Databricks Token
 #databricks configure --token
@@ -54,7 +58,7 @@ EOF
     databricks clusters create --json "$BODY_CREATE_CLUSTER"
 fi
 
-CLUSTER_ID=$(databricks clusters list | awk '/'$DATABRICKS_CLUSTER_NAME'/ {print $1}')
+DATABRICKS_CLUSTER_ID=$(databricks clusters list | awk '/'$DATABRICKS_CLUSTER_NAME'/ {print $1}')
 
 # Create Storage Container
 STORAGE_ACCOUNT_NAME=$(az storage account list -g $RESOURCE_GROUP --query "[?starts_with(name, '$STORAGE_ACCOUNT_PREFIX')].name" -o tsv)
@@ -70,7 +74,7 @@ databricks workspace import_dir -o notebooks /Shared
 BODY_CREATE_JOB_RUN=$(cat << EOF
 {
     "run_name": "Mount Azure Storage",
-    "existing_cluster_id": "$CLUSTER_ID",
+    "existing_cluster_id": "$DATABRICKS_CLUSTER_ID",
     "notebook_task": {
         "notebook_path": "/Shared/mount_azure_blob",
         "base_parameters": {
@@ -83,6 +87,11 @@ BODY_CREATE_JOB_RUN=$(cat << EOF
 EOF
 )
 databricks runs submit --json "$BODY_CREATE_JOB_RUN"
+
+# Add Databricks Token in KeyVault
+USER_PRINCIPAL_NAME=$(az account show --query "user.name" -o tsv)
+az keyvault set-policy -n $KEY_VAULT_NAME --upn $USER_PRINCIPAL_NAME --secret-permissions get set list
+az keyvault secret set --vault-name $KEY_VAULT_NAME --name $DATABRICKS_SECRET_NAME --value $DATABRICKS_TOKEN
 
 # Upload 2018-10-04 blobs to the container/input folder
 az storage blob upload-batch --account-name $STORAGE_ACCOUNT_NAME --account-key $STORAGE_ACCOUNT_KEY -d $STORAGE_ACCOUNT_CONTAINER \

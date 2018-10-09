@@ -16,6 +16,13 @@
                 "description": "Name of the Databricks workspace."
             }
         },
+        "databricksSecretName": {
+            "type": "string",
+            "defaultValue": "databricks",
+            "metadata": {
+                "description": "Secret Name of the Databricks token in key vault."
+            }
+        },
         "storageAccountPrefix": {
             "type": "string",
             "defaultValue": "datamanager",
@@ -172,7 +179,14 @@
                 "tenantId": "[variables('tenantId')]",
                 "enabledForDeployment": false,
                 "enabledForDiskEncryption": false,
-                "enabledForTemplateDeployment": false,
+                "enabledForTemplateDeployment": false                
+            }
+        },
+        {            
+            "name": "[concat(parameters('keyVaultName'), '/add')]",
+            "apiVersion": "2018-02-14",
+            "type": "Microsoft.KeyVault/vaults/accessPolicies",
+            "properties": {
                 "accessPolicies": [
                     {
                         "tenantId": "[variables('tenantId')]",
@@ -187,6 +201,7 @@
                 ]
             },
             "dependsOn": [
+                "[variables('keyVaultId')]",
                 "[variables('dataFactoryId')]"
             ]
         },

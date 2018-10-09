@@ -10,6 +10,9 @@ dbutils.widgets.text("key", "")
 # COMMAND ----------
 
 container = dbutils.widgets.get("container")
+
+# COMMAND ----------
+
 mountPoint = "/mnt/" + container
 mounts = dbutils.fs.mounts()
 mountExists = [x for x in mounts if x.mountPoint == mountPoint]
