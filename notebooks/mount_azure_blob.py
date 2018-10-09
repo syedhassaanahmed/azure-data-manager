@@ -10,12 +10,18 @@ dbutils.widgets.text("key", "")
 # COMMAND ----------
 
 container = dbutils.widgets.get("container")
-account = dbutils.widgets.get("account")
+mountPoint = "/mnt/" + container
+mounts = dbutils.fs.mounts()
+mountExists = [x for x in mounts if x.mountPoint == mountPoint]
 
-dbutils.fs.mount(
-  source = "wasbs://" + container + "@" + account + ".blob.core.windows.net",
-  mount_point = "/mnt/" + container,
-  extra_configs = {"fs.azure.account.key." + account + ".blob.core.windows.net": dbutils.widgets.get("key")})
+if not mountExists:
+  account = dbutils.widgets.get("account")
+  dbutils.fs.mount(
+    source = "wasbs://" + container + "@" + account + ".blob.core.windows.net",
+    mount_point = mountPoint,
+    extra_configs = {"fs.azure.account.key." + account + ".blob.core.windows.net": dbutils.widgets.get("key")})
+else:
+  print(mountPoint + " already mounted.")
 
 # COMMAND ----------
 
