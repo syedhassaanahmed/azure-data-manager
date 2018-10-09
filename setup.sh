@@ -3,6 +3,8 @@
 # Define parameters with default values
 RESOURCE_GROUP=${RESOURCE_GROUP:=data-manager}
 RESOURCE_GROUP_LOCATION=${RESOURCE_GROUP_LOCATION:=westeurope}
+AD_APP_NAME=${AD_APP_NAME:=data-manager}
+AD_APP_PASSWORD=${AD_APP_PASSWORD:=MyStrongADPa$$w0rd}
 STORAGE_ACCOUNT_PREFIX=${STORAGE_ACCOUNT_PREFIX:=datamanager}
 KEY_VAULT_NAME=${KEY_VAULT_NAME:=datamanager-kv}
 DATABRICKS_CLUSTER_NAME=${DATABRICKS_CLUSTER_NAME:=datamanager-cluster}
@@ -11,6 +13,24 @@ SQL_SERVER_NAME=${SQL_SERVER_NAME:=datamanager-sqlserver}
 SQL_DB_NAME=${SQL_DB_NAME:=datamanager-sqldb}
 SQL_ADMIN_USER=${SQL_ADMIN_USER:=datamanager-sqluser}
 SQL_ADMIN_PASSWORD=${SQL_ADMIN_PASSWORD:='<YourStrong!Passw0rd>'}
+
+# Create Azure AD Application for the Web App
+AD_APP_ID=$(az ad app list --display-name $AD_APP_NAME --query "[?displayName=='$AD_APP_NAME'].appId" -o tsv)
+if [ -z "$AD_APP_ID" ]
+then
+    LOCAL_WEBSITE=https://localhost:44338/
+    REPLY_URLS="$LOCAL_WEBSITE $LOCAL_WEBSITE/signin-oidc"
+    AD_APP_ID=$(az ad app create --display-name $AD_APP_NAME --native-app false \
+        --identifier-uris https://localhost/$(uuidgen) \
+        --homepage $LOCAL_WEBSITE \
+        --password $AD_APP_PASSWORD \
+        --reply-urls $REPLY_URLS \
+        --query="appId" -o tsv)
+fi
+
+echo $AD_APP_ID
+
+exit 0
 
 # Create resource group if needed
 RG_EXISTS=$(az group exists -n $RESOURCE_GROUP -o tsv)
