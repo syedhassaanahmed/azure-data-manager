@@ -179,14 +179,7 @@
                 "tenantId": "[variables('tenantId')]",
                 "enabledForDeployment": false,
                 "enabledForDiskEncryption": false,
-                "enabledForTemplateDeployment": false                
-            }
-        },
-        {            
-            "name": "[concat(parameters('keyVaultName'), '/add')]",
-            "apiVersion": "2018-02-14",
-            "type": "Microsoft.KeyVault/vaults/accessPolicies",
-            "properties": {
+                "enabledForTemplateDeployment": false,
                 "accessPolicies": [
                     {
                         "tenantId": "[variables('tenantId')]",
@@ -198,13 +191,12 @@
                             ]
                         }
                     }
-                ]
+                ]         
             },
             "dependsOn": [
-                "[variables('keyVaultId')]",
                 "[variables('dataFactoryId')]"
             ]
-        },
+        },        
         {
             "name": "[concat(parameters('keyVaultName'), '/', parameters('storageAccountSecretName'))]",
             "apiVersion": "2018-02-14",
