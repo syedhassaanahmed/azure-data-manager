@@ -1,34 +1,39 @@
 #!/bin/bash
 
 # Define parameters with default values
-RESOURCE_GROUP=${RESOURCE_GROUP:=syah-data-manager}
+RESOURCE_GROUP=${RESOURCE_GROUP:=data-manager}
+RESOURCE_GROUP_LOCATION=${RESOURCE_GROUP_LOCATION:=westeurope}
 STORAGE_ACCOUNT_PREFIX=${STORAGE_ACCOUNT_PREFIX:=datamanager}
+SQL_SERVER_NAME=${SQL_SERVER_NAME:=datamanager-sqlserver}
+SQL_DB_NAME=${SQL_DB_NAME:=datamanager-sqldb}
+SQL_ADMIN_USER=${SQL_ADMIN_USER:=datamanager-sqluser}
 SQL_ADMIN_PASSWORD=${SQL_ADMIN_PASSWORD:='<YourStrong!Passw0rd>'}
 DATABRICKS_CLUSTER_NAME=${DATABRICKS_CLUSTER_NAME:=datamanager-cluster}
 
 # Create resource group if needed
-RG_LOCATION=westeurope
 RG_EXISTS=$(az group exists -n $RESOURCE_GROUP -o tsv)
 if [[ "$RG_EXISTS" != true ]]; then
-  az group create -l $RG_LOCATION -n $RESOURCE_GROUP
+  az group create -n $RESOURCE_GROUP -l $RESOURCE_GROUP_LOCATION
 fi
 
 # Deploy ARM Template
-#az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json --parameters sqlAdminPassword=$SQL_ADMIN_PASSWORD
+# az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json --parameters \
+#     storageAccountPrefix=$STORAGE_ACCOUNT_PREFIX \
+#     sqlServerName=$SQL_SERVER_NAME \
+#     sqlDBName=$SQL_DB_NAME \
+#     sqlAdminUser=$SQL_ADMIN_USER \
+#     sqlAdminPassword=$SQL_ADMIN_PASSWORD
 
 # Configure Databricks Token
-DATABRICKS_CONFIG=~/.databrickscfg
-if [[ ! -f "$DATABRICKS_CONFIG" ]]; then
-  databricks configure --token
-fi
-DATABRICKS_TOKEN=$(grep token $DATABRICKS_CONFIG | awk -F ' = ' '{print $2}')
+#databricks configure --token
+DATABRICKS_TOKEN=$(grep token ~/.databrickscfg | awk -F ' = ' '{print $2}')
 
 # Create Databricks Cluster if needed
 CLUSTER_EXISTS=$(databricks clusters list | tr -s " " | cut -d" " -f2 | grep ^${DATABRICKS_CLUSTER_NAME}$)
 if [[ -n $CLUSTER_EXISTS ]]; then
-    echo "Cluster $DATABRICKS_CLUSTER_NAME already exists."
+    echo "Databricks Cluster '$DATABRICKS_CLUSTER_NAME' already exists."
 else
-    echo "Creating new cluster $DATABRICKS_CLUSTER_NAME..."
+    echo "Creating new Databricks Cluster '$DATABRICKS_CLUSTER_NAME'..."
 
     BODY_CREATE_CLUSTER=$(cat << EOF
     {
@@ -46,7 +51,6 @@ else
     }
 EOF
     )
-
     databricks clusters create --json "$BODY_CREATE_CLUSTER"
 fi
 
@@ -78,5 +82,15 @@ BODY_CREATE_JOB_RUN=$(cat << EOF
 }
 EOF
 )
-
 databricks runs submit --json "$BODY_CREATE_JOB_RUN"
+
+# Upload 2018-10-04 blobs to the container/input folder
+az storage blob upload-batch --account-name $STORAGE_ACCOUNT_NAME --account-key $STORAGE_ACCOUNT_KEY -d $STORAGE_ACCOUNT_CONTAINER \
+    -s sample-data/ --pattern messages_20181004T*.json --destination-path input
+
+# Allow current public IP in SQL Server firewall rule
+PUBLIC_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
+az sql server firewall-rule create -g $RESOURCE_GROUP -s $SQL_SERVER_NAME -n my-public-ip-rule --start-ip-address $PUBLIC_IP --end-ip-address $PUBLIC_IP
+
+# Populate Sensors Table in SQL DB
+sqlcmd -S tcp:$SQL_SERVER_NAME.database.windows.net,1433 -d $SQL_DB_NAME -U datamanager-sqluser -P $SQL_ADMIN_PASSWORD -N -i sample-data/ddl.sql
