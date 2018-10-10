@@ -6,7 +6,7 @@
             "type": "string",
             "defaultValue": "datamanager-adf",
             "metadata": {
-                "description": "Name of the data factory. Must be globally unique."
+                "description": "Name of the Data Factory. Must be globally unique."
             }
         },
         "databricksWorkspaceName": {
@@ -75,7 +75,67 @@
             "type": "string",
             "defaultValue": "datamanager-kv",
             "metadata": {
-                "description": "Name of the key vault. Must be globally unique."
+                "description": "Name of the Key Vault. Must be globally unique."
+            }
+        },
+        "azureADClientID": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure AD Application ID for the Web App to use for Authentication."
+            }
+        },
+        "azureADClientSecret": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure AD App password for the Web App to use for ADF operations."
+            }
+        },
+        "cosmosDBAccountName": {
+            "type": "string",
+            "defaultValue": "datamanager-cosmos",
+            "metadata": {
+                "description": "Account name of Cosmos DB. Must be globally unique."
+            }
+        },
+        "cosmosDBDatabaseName": {
+            "type": "string",
+            "defaultValue": "data-manager",
+            "metadata": {
+                "description": "Database name of Cosmos DB."
+            }
+        },
+        "webAppName": {
+            "type": "string",
+            "defaultValue": "datamanager-web",
+            "metadata": {
+                "description": "Name of the App Service and Service Plan. Must be globally unique."
+            }
+        },
+        "webAppSKU": {
+            "type": "string",
+            "allowedValues": [
+                "Free",
+                "Shared",
+                "Basic",
+                "Standard"
+            ],
+            "defaultValue": "Basic",
+            "metadata": {
+                "description": "Pricing tier for the App Service plan."
+            }
+        },
+        "webAppSize": {
+            "type": "string",
+            "defaultValue": "B1",
+            "metadata": {
+                "description": "Size of the App Service plan."
+            }
+        },
+        "webAppCapacity": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "Number of App Service instances."
             }
         }
     },
@@ -89,6 +149,46 @@
         "keyVaultLinkedReferenceId": "[concat(variables('dataFactoryId'), '/linkedServices/', parameters('keyVaultName'))]"
     },
     "resources": [
+        {
+            "name": "[parameters('cosmosDbAccountName')]",
+            "type": "Microsoft.DocumentDb/databaseAccounts",
+            "apiVersion": "2016-03-31",
+            "kind": "GlobalDocumentDB",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "name": "[parameters('cosmosDbAccountName')]",
+                "databaseAccountOfferType": "Standard"
+            }
+        },
+        {
+            "name": "[parameters('sqlServerName')]",
+            "apiVersion": "2018-06-01-preview",
+            "type": "Microsoft.Sql/servers",
+            "location": "[resourceGroup().location]",
+            "kind": "v12.0",
+            "properties": {
+                "administratorLogin": "[parameters('sqlAdminUser')]",
+                "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
+                "version": "12.0"
+            },
+            "resources": [
+                {
+                    "name": "[parameters('sqlDBName')]",
+                    "apiVersion": "2018-06-01-preview",
+                    "type": "databases",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[parameters('sqlServerName')]"
+                    ],
+                    "properties": {
+                        "edition": "Basic",
+                        "collation": "SQL_Latin1_General_CP1_CI_AS",
+                        "maxSizeBytes": "1073741824",
+                        "requestedServiceObjectiveName": "Basic"
+                    }
+                }
+            ]
+        },
         {
             "name": "[parameters('dataFactoryName')]",
             "apiVersion": "2018-06-01",
@@ -138,35 +238,6 @@
             }
         },
         {
-            "name": "[parameters('sqlServerName')]",
-            "apiVersion": "2018-06-01-preview",
-            "type": "Microsoft.Sql/servers",
-            "location": "[resourceGroup().location]",
-            "kind": "v12.0",
-            "properties": {
-                "administratorLogin": "[parameters('sqlAdminUser')]",
-                "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
-                "version": "12.0"
-            },
-            "resources": [
-                {
-                    "name": "[parameters('sqlDBName')]",
-                    "apiVersion": "2018-06-01-preview",
-                    "type": "databases",
-                    "location": "[resourceGroup().location]",
-                    "dependsOn": [
-                        "[parameters('sqlServerName')]"
-                    ],
-                    "properties": {
-                        "edition": "Basic",
-                        "collation": "SQL_Latin1_General_CP1_CI_AS",
-                        "maxSizeBytes": "1073741824",
-                        "requestedServiceObjectiveName": "Basic"
-                    }
-                }
-            ]
-        },
-        {
             "name": "[parameters('keyVaultName')]",
             "apiVersion": "2018-02-14",
             "type": "Microsoft.KeyVault/vaults",
@@ -191,12 +262,12 @@
                             ]
                         }
                     }
-                ]         
+                ]
             },
             "dependsOn": [
                 "[variables('dataFactoryId')]"
             ]
-        },        
+        },
         {
             "name": "[concat(parameters('keyVaultName'), '/', parameters('storageAccountSecretName'))]",
             "apiVersion": "2018-02-14",
@@ -278,6 +349,115 @@
             "dependsOn": [
                 "[variables('keyVaultLinkedReferenceId')]"
             ]
+        },
+        {
+            "name": "[parameters('webAppName')]",
+            "type": "Microsoft.Web/serverFarms",
+            "apiVersion": "2018-02-01",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "[parameters('webAppName')]",
+                "tier": "[parameters('webAppSKU')]",
+                "size": "[parameters('webAppSize')]",
+                "capacity": "[parameters('webAppCapacity')]"
+            }
+        },
+        {
+            "name": "[parameters('webAppName')]",
+            "type": "Microsoft.Web/Sites",
+            "apiVersion": "2018-02-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Web/serverFarms/', parameters('webAppName'))]"
+            ],
+            "resources": [
+                {
+                    "name": "AspNetCoreRuntime",
+                    "type": "siteextensions",
+                    "apiVersion": "2018-02-01",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/Sites', parameters('webAppName'))]"
+                    ]
+                }
+            ],
+            "properties": {
+                "name": "[parameters('webAppName')]",
+                "serverFarmId": "[parameters('webAppName')]",
+                "alwaysOn": true,
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "Name": "LoadSampleData",
+                            "Value": true
+                        },
+                        {
+                            "Name": "CosmosDb:Endpoint",
+                            "Value": "[reference(concat('Microsoft.DocumentDb/databaseAccounts/', parameters('cosmosDBAccountName'))).documentEndpoint]"
+                        },
+                        {
+                            "Name": "CosmosDb:PrimaryKey",
+                            "Value": "[listKeys(resourceId('Microsoft.DocumentDb/databaseAccounts', parameters('cosmosDBAccountName')), '2015-04-08').primaryMasterKey]"
+                        },
+                        {
+                            "Name": "CosmosDb:Database",
+                            "Value": "[parameters('cosmosDBDatabaseName')]"
+                        },
+                        {
+                            "Name": "AzureAd:Instance",
+                            "Value": "https://login.microsoftonline.com/"
+                        },
+                        {
+                            "Name": "AzureAd:Domain",
+                            "Value": "[variables('tenantId')]"
+                        },
+                        {
+                            "Name": "AzureAd:TenantId",
+                            "Value": "[variables('tenantId')]"
+                        },
+                        {
+                            "Name": "AzureAd:ClientId",
+                            "Value": "[parameters('azureADClientID')]"
+                        },
+                        {
+                            "Name": "AzureAd:CallbackPath",
+                            "Value": "/signin-oidc"
+                        },
+                        {
+                            "Name": "AzureAd:ClientSecret",
+                            "Value": "[parameters('azureADClientSecret')]"
+                        },
+                        {
+                            "Name": "DataFactory:SubscriptionId",
+                            "Value": "[subscription().subscriptionId]"
+                        },
+                        {
+                            "Name": "DataFactory:ResourceGroup",
+                            "Value": "[resourceGroup().name]"
+                        },
+                        {
+                            "Name": "DataFactory:Name",
+                            "Value": "[parameters('dataFactoryName')]"
+                        },
+                        {
+                            "Name": "KeyVault:Name",
+                            "Value": "[parameters('keyVaultName')]"
+                        },
+                        {
+                            "Name": "StorageAccount:Name",
+                            "Value": "[variables('storageAccountName')]"
+                        },
+                        {
+                            "Name": "Databricks:Endpoint",
+                            "Value": "[concat('https://', resourceGroup().location, '.azuredatabricks.net')]"
+                        },
+                        {
+                            "Name": "Databricks:KeyVaultSecretName",
+                            "Value": "[parameters('databricksSecretName')]"
+                        }
+                    ]
+                }
+            }
         }
     ]
 }

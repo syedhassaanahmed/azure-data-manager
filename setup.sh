@@ -13,21 +13,25 @@ SQL_SERVER_NAME=${SQL_SERVER_NAME:=datamanager-sqlserver}
 SQL_DB_NAME=${SQL_DB_NAME:=datamanager-sqldb}
 SQL_ADMIN_USER=${SQL_ADMIN_USER:=datamanager-sqluser}
 SQL_ADMIN_PASSWORD=${SQL_ADMIN_PASSWORD:='<YourStrong!Passw0rd>'}
+WEB_APP_NAME=${WEB_APP_NAME:=datamanager-web}
 
 # Create Azure AD Application for the Web App if needed
 AD_APP_ID=$(az ad app list --display-name $AD_APP_NAME --query "[?displayName=='$AD_APP_NAME'].appId" -o tsv)
+
 if [ -z "$AD_APP_ID" ]
 then
-    LOCAL_WEBSITE=https://localhost:44338
-    REPLY_URLS="$LOCAL_WEBSITE $LOCAL_WEBSITE/signin-oidc"
-
     AD_APP_ID=$(az ad app create --display-name $AD_APP_NAME --native-app false \
         --identifier-uris https://localhost/$(uuidgen) \
         --homepage $LOCAL_WEBSITE \
         --password $AD_APP_PASSWORD \
-        --reply-urls $REPLY_URLS \
         --query="appId" -o tsv)
 fi
+
+# Add Reply URLs to the AD App for Oauth flow
+LOCAL_WEBSITE=https://localhost:44338
+AZURE_WEBSITE=https://$WEB_APP_NAME.azurewebsites.net
+REPLY_URLS="$LOCAL_WEBSITE $LOCAL_WEBSITE/signin-oidc $AZURE_WEBSITE $AZURE_WEBSITE/signin-oidc"
+az ad app update --id $AD_APP_ID --reply-urls $REPLY_URLS
 
 # Create Service Principal for the above AD App if needed.
 AD_SP_ID=$(az ad sp list --display-name $AD_APP_NAME --query "[?appId=='$AD_APP_ID'].objectId" -o tsv)
@@ -42,8 +46,6 @@ if [[ "$RG_EXISTS" != true ]]; then
   az group create -n $RESOURCE_GROUP -l $RESOURCE_GROUP_LOCATION
 fi
 
-exit 0
-
 # Deploy ARM Template
 az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json --parameters \
     storageAccountPrefix=$STORAGE_ACCOUNT_PREFIX \
@@ -52,7 +54,10 @@ az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json -
     sqlServerName=$SQL_SERVER_NAME \
     sqlDBName=$SQL_DB_NAME \
     sqlAdminUser=$SQL_ADMIN_USER \
-    sqlAdminPassword=$SQL_ADMIN_PASSWORD
+    sqlAdminPassword=$SQL_ADMIN_PASSWORD \
+    azureADClientID=$AD_APP_ID \
+    azureADClientSecret=$AD_APP_PASSWORD \
+    webAppName=$WEB_APP_NAME
 
 # Configure Databricks Token
 #databricks configure --token
