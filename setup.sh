@@ -4,7 +4,7 @@
 RESOURCE_GROUP=${RESOURCE_GROUP:=data-manager}
 RESOURCE_GROUP_LOCATION=${RESOURCE_GROUP_LOCATION:=westeurope}
 AD_APP_NAME=${AD_APP_NAME:=data-manager}
-AD_APP_PASSWORD=${AD_APP_PASSWORD:=MyStrongADPa$$w0rd}
+AD_APP_PASSWORD=${AD_APP_PASSWORD:=MyStrongADPaSSw0rd}
 STORAGE_ACCOUNT_PREFIX=${STORAGE_ACCOUNT_PREFIX:=datamanager}
 KEY_VAULT_NAME=${KEY_VAULT_NAME:=datamanager-kv}
 DATABRICKS_CLUSTER_NAME=${DATABRICKS_CLUSTER_NAME:=datamanager-cluster}
@@ -18,7 +18,7 @@ SQL_ADMIN_PASSWORD=${SQL_ADMIN_PASSWORD:='<YourStrong!Passw0rd>'}
 AD_APP_ID=$(az ad app list --display-name $AD_APP_NAME --query "[?displayName=='$AD_APP_NAME'].appId" -o tsv)
 if [ -z "$AD_APP_ID" ]
 then
-    LOCAL_WEBSITE=https://localhost:44338/
+    LOCAL_WEBSITE=https://localhost:44338
     REPLY_URLS="$LOCAL_WEBSITE $LOCAL_WEBSITE/signin-oidc"
 
     AD_APP_ID=$(az ad app create --display-name $AD_APP_NAME --native-app false \
@@ -29,8 +29,8 @@ then
         --query="appId" -o tsv)
 fi
 
-# Create Service Principal for the above AD App if needed
-AD_SP_ID=$(az ad sp show --id $AD_APP_ID --query "objectId" -o tsv)
+# Create Service Principal for the above AD App if needed.
+AD_SP_ID=$(az ad sp list --display-name $AD_APP_NAME --query "[?appId=='$AD_APP_ID'].objectId" -o tsv)
 if [ -z "$AD_SP_ID" ]
 then
     AD_SP_ID=$(az ad sp create --id $AD_APP_ID --query "objectId" -o tsv)
@@ -40,13 +40,6 @@ fi
 RG_EXISTS=$(az group exists -n $RESOURCE_GROUP -o tsv)
 if [[ "$RG_EXISTS" != true ]]; then
   az group create -n $RESOURCE_GROUP -l $RESOURCE_GROUP_LOCATION
-fi
-
-# Assign Servince Principal to the resource group so that the App can provision Data Factory resources (e.g. linked services, datasets, activities and pipelines)
-ASSIGNMENT_EXISTS=$(az role assignment list --resource-group $RESOURCE_GROUP --query="[?principalId=='$AD_SP_ID'].id" -o tsv)
-if [ -z "$ASSIGNMENT_EXISTS" ]
-then
-    az role assignment create --role "Contributor" --assignee $AD_SP_ID --resource-group $RESOURCE_GROUP
 fi
 
 exit 0
@@ -136,3 +129,11 @@ az sql server firewall-rule create -g $RESOURCE_GROUP -s $SQL_SERVER_NAME -n my-
 
 # Populate Sensors Table in SQL DB
 sqlcmd -S tcp:$SQL_SERVER_NAME.database.windows.net,1433 -d $SQL_DB_NAME -U datamanager-sqluser -P $SQL_ADMIN_PASSWORD -N -i sample-data/ddl.sql
+
+# Assign Servince Principal to the Resource Group so that the Web App can provision Data Factory resources (e.g. linked services, datasets, activities and pipelines)
+# Reason for doing this so late in the script is this issue https://github.com/Azure/azure-powershell/issues/2286
+ASSIGNMENT_EXISTS=$(az role assignment list --resource-group $RESOURCE_GROUP --query="[?principalId=='$AD_SP_ID'].id" -o tsv)
+if [ -z "$ASSIGNMENT_EXISTS" ]
+then
+    az role assignment create --role "Contributor" --assignee $AD_SP_ID --resource-group $RESOURCE_GROUP
+fi
