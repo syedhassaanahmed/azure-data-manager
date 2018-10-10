@@ -111,7 +111,14 @@
                 "description": "Name of the App Service and Service Plan. Must be globally unique."
             }
         },
-        "webAppSKU": {
+        "webAppSKUName": {
+            "type": "string",
+            "defaultValue": "B1",
+            "metadata": {
+                "description": "Size of the App Service plan."
+            }
+        },
+        "webAppSKUTier": {
             "type": "string",
             "allowedValues": [
                 "Free",
@@ -122,13 +129,6 @@
             "defaultValue": "Basic",
             "metadata": {
                 "description": "Pricing tier for the App Service plan."
-            }
-        },
-        "webAppSize": {
-            "type": "string",
-            "defaultValue": "B1",
-            "metadata": {
-                "description": "Size of the App Service plan."
             }
         },
         "webAppCapacity": {
@@ -356,9 +356,8 @@
             "apiVersion": "2018-02-01",
             "location": "[resourceGroup().location]",
             "sku": {
-                "name": "[parameters('webAppName')]",
-                "tier": "[parameters('webAppSKU')]",
-                "size": "[parameters('webAppSize')]",
+                "name": "[parameters('webAppSKUName')]",
+                "tier": "[parameters('webAppSKUTier')]",
                 "capacity": "[parameters('webAppCapacity')]"
             }
         },
@@ -385,6 +384,7 @@
                 "name": "[parameters('webAppName')]",
                 "serverFarmId": "[parameters('webAppName')]",
                 "alwaysOn": true,
+                "use32BitWorkerProcess": false,
                 "siteConfig": {
                     "appSettings": [
                         {
