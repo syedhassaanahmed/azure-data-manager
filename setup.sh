@@ -14,12 +14,13 @@ SQL_DB_NAME=${SQL_DB_NAME:=datamanager-sqldb}
 SQL_ADMIN_USER=${SQL_ADMIN_USER:=datamanager-sqluser}
 SQL_ADMIN_PASSWORD=${SQL_ADMIN_PASSWORD:='<YourStrong!Passw0rd>'}
 
-# Create Azure AD Application for the Web App
+# Create Azure AD Application for the Web App if needed
 AD_APP_ID=$(az ad app list --display-name $AD_APP_NAME --query "[?displayName=='$AD_APP_NAME'].appId" -o tsv)
 if [ -z "$AD_APP_ID" ]
 then
     LOCAL_WEBSITE=https://localhost:44338/
     REPLY_URLS="$LOCAL_WEBSITE $LOCAL_WEBSITE/signin-oidc"
+
     AD_APP_ID=$(az ad app create --display-name $AD_APP_NAME --native-app false \
         --identifier-uris https://localhost/$(uuidgen) \
         --homepage $LOCAL_WEBSITE \
@@ -28,15 +29,27 @@ then
         --query="appId" -o tsv)
 fi
 
-echo $AD_APP_ID
+# Create Service Principal for the above AD App if needed
+AD_SP_ID=$(az ad sp show --id $AD_APP_ID --query "objectId" -o tsv)
+if [ -z "$AD_SP_ID" ]
+then
+    AD_SP_ID=$(az ad sp create --id $AD_APP_ID --query "objectId" -o tsv)
+fi
 
-exit 0
-
-# Create resource group if needed
+# Create Resource Group if needed
 RG_EXISTS=$(az group exists -n $RESOURCE_GROUP -o tsv)
 if [[ "$RG_EXISTS" != true ]]; then
   az group create -n $RESOURCE_GROUP -l $RESOURCE_GROUP_LOCATION
 fi
+
+# Assign Servince Principal to the resource group so that the App can provision Data Factory resources (e.g. linked services, datasets, activities and pipelines)
+ASSIGNMENT_EXISTS=$(az role assignment list --resource-group $RESOURCE_GROUP --query="[?principalId=='$AD_SP_ID'].id" -o tsv)
+if [ -z "$ASSIGNMENT_EXISTS" ]
+then
+    az role assignment create --role "Contributor" --assignee $AD_SP_ID --resource-group $RESOURCE_GROUP
+fi
+
+exit 0
 
 # Deploy ARM Template
 az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json --parameters \
