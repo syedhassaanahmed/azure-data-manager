@@ -59,7 +59,7 @@
             }
         },
         "sqlAdminPassword": {
-            "type": "securestring",
+            "type": "secureString",
             "metadata": {
                 "description": "Password of the admin user of SQL Server"
             }
@@ -85,7 +85,7 @@
             }
         },
         "azureADClientSecret": {
-            "type": "string",
+            "type": "secureString",
             "metadata": {
                 "description": "Azure AD App password for the Web App to use for ADF operations."
             }
