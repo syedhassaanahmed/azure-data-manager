@@ -73,10 +73,8 @@ namespace DataManager.Web
 
         private async Task LoadSampleDataAsync(CosmosDbService cosmosDbService)
         {
-            await Task.WhenAll(
-                    LoadSampleDataAsync<Dataset>(cosmosDbService, "dataset", "datasets.json"),
-                    LoadSampleDataAsync<Job>(cosmosDbService, "job", "jobs.json")
-            );
+            await LoadSampleDataAsync<Dataset>(cosmosDbService, "dataset", "datasets.json");
+            await LoadSampleDataAsync<Job>(cosmosDbService, "job", "jobs.json");
         }
 
         private async Task LoadSampleDataAsync<T>(CosmosDbService cosmosDbService, string collection, string fileName)
@@ -91,8 +89,11 @@ namespace DataManager.Web
             {
                 var serializer = new JsonSerializer();
                 var documents = serializer.Deserialize<IEnumerable<T>>(jsonReader);
-                var tasks = documents.Select(d => cosmosDbService.UpsertAsync(collection, d));
-                await Task.WhenAll(tasks);
+
+                foreach(var d in documents)
+                {
+                    await cosmosDbService.UpsertAsync(collection, d);
+                }
             }
         }
 
