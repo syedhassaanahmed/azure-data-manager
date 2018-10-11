@@ -17,9 +17,9 @@ WEB_APP_NAME=${WEB_APP_NAME:=datamanager-web}
 
 # Create Azure AD Application for the Web App if needed
 AD_APP_ID=$(az ad app list --display-name $AD_APP_NAME --query "[?displayName=='$AD_APP_NAME'].appId" -o tsv)
+LOCAL_WEBSITE=https://localhost:44338
 
-if [ -z "$AD_APP_ID" ]
-then
+if [ -z "$AD_APP_ID" ]; then
     AD_APP_ID=$(az ad app create --display-name $AD_APP_NAME --native-app false \
         --identifier-uris https://localhost/$(uuidgen) \
         --homepage $LOCAL_WEBSITE \
@@ -28,15 +28,13 @@ then
 fi
 
 # Add Reply URLs to the AD App for Oauth flow
-LOCAL_WEBSITE=https://localhost:44338
 AZURE_WEBSITE=https://$WEB_APP_NAME.azurewebsites.net
 REPLY_URLS="$LOCAL_WEBSITE $LOCAL_WEBSITE/signin-oidc $AZURE_WEBSITE $AZURE_WEBSITE/signin-oidc"
 az ad app update --id $AD_APP_ID --reply-urls $REPLY_URLS
 
 # Create Service Principal for the above AD App if needed.
 AD_SP_ID=$(az ad sp list --display-name $AD_APP_NAME --query "[?appId=='$AD_APP_ID'].objectId" -o tsv)
-if [ -z "$AD_SP_ID" ]
-then
+if [ -z "$AD_SP_ID" ]; then
     AD_SP_ID=$(az ad sp create --id $AD_APP_ID --query "objectId" -o tsv)
 fi
 
@@ -57,7 +55,8 @@ az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json -
     sqlAdminPassword=$SQL_ADMIN_PASSWORD \
     azureADClientID=$AD_APP_ID \
     azureADClientSecret=$AD_APP_PASSWORD \
-    webAppName=$WEB_APP_NAME
+    webAppName=$WEB_APP_NAME \
+    >/dev/null
 
 # Configure Databricks Token
 #databricks configure --token
@@ -65,11 +64,7 @@ DATABRICKS_TOKEN=$(grep token ~/.databrickscfg | awk -F ' = ' '{print $2}')
 
 # Create Databricks Cluster if needed
 CLUSTER_EXISTS=$(databricks clusters list | tr -s " " | cut -d" " -f2 | grep ^${DATABRICKS_CLUSTER_NAME}$)
-if [[ -n $CLUSTER_EXISTS ]]; then
-    echo "Databricks Cluster '$DATABRICKS_CLUSTER_NAME' already exists."
-else
-    echo "Creating new Databricks Cluster '$DATABRICKS_CLUSTER_NAME'..."
-
+if [ -z "$CLUSTER_EXISTS" ]; then
     BODY_CREATE_CLUSTER=$(cat << EOF
     {
         "cluster_name": "$DATABRICKS_CLUSTER_NAME",
@@ -119,10 +114,13 @@ EOF
 )
 databricks runs submit --json "$BODY_CREATE_JOB_RUN"
 
+# Set Databricks Cluster ID in Web App Settings
+az webapp config appsettings set -g $RESOURCE_GROUP -n $WEB_APP_NAME --settings Databricks:ExistingClusterId=$DATABRICKS_CLUSTER_ID >/dev/null
+
 # Add Databricks Token in KeyVault
 USER_PRINCIPAL_NAME=$(az account show --query "user.name" -o tsv)
 az keyvault set-policy -n $KEY_VAULT_NAME --upn $USER_PRINCIPAL_NAME --secret-permissions get set list
-az keyvault secret set --vault-name $KEY_VAULT_NAME --name $DATABRICKS_SECRET_NAME --value $DATABRICKS_TOKEN
+az keyvault secret set --vault-name $KEY_VAULT_NAME --name $DATABRICKS_SECRET_NAME --value $DATABRICKS_TOKEN >/dev/null
 
 # Upload 2018-10-04 blobs to the container/input folder
 az storage blob upload-batch --account-name $STORAGE_ACCOUNT_NAME --account-key $STORAGE_ACCOUNT_KEY -d $STORAGE_ACCOUNT_CONTAINER \
@@ -138,7 +136,6 @@ sqlcmd -S tcp:$SQL_SERVER_NAME.database.windows.net,1433 -d $SQL_DB_NAME -U data
 # Assign Servince Principal to the Resource Group so that the Web App can provision Data Factory resources (e.g. linked services, datasets, activities and pipelines)
 # Reason for doing this so late in the script is this issue https://github.com/Azure/azure-powershell/issues/2286
 ASSIGNMENT_EXISTS=$(az role assignment list --resource-group $RESOURCE_GROUP --query="[?principalId=='$AD_SP_ID'].id" -o tsv)
-if [ -z "$ASSIGNMENT_EXISTS" ]
-then
+if [ -z "$ASSIGNMENT_EXISTS" ]; then
     az role assignment create --role "Contributor" --assignee $AD_SP_ID --resource-group $RESOURCE_GROUP
 fi
