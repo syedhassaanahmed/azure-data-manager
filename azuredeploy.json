@@ -186,6 +186,19 @@
                         "maxSizeBytes": "1073741824",
                         "requestedServiceObjectiveName": "Basic"
                     }
+                },
+                {
+                    "type": "firewallRules",
+                    "apiVersion": "2018-06-01-preview",
+                    "dependsOn": [
+                        "[parameters('sqlServerName')]"
+                    ],
+                    "location": "[resourceGroup().location]",
+                    "name": "AllowAllAzureIps",
+                    "properties": {
+                        "endIpAddress": "0.0.0.0",
+                        "startIpAddress": "0.0.0.0"
+                    }
                 }
             ]
         },
