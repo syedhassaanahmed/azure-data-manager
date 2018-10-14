@@ -15,12 +15,16 @@
 <h3>List</h3>
 <div id="pipelines"></div>
 
+<h3>Runs in last 7 days</h3>
+<div id="pipelineRuns"></div>
+
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"
         integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
         crossorigin="anonymous"></script>
 <script>
     $(document).ready(function () {
         getPipelines();
+        getPipelineRuns();
     });
 
     function getPipelines() {
@@ -39,14 +43,46 @@
 
                 $.each(result, function (key, item) {
                     table += "<tr>";
-                    table += "<td width='30%'>" + item + "</td>";
-                    table += "<td width='30%'><button id='button" + item + "' type='button' onclick='runPipeline(" + item + ")'>Run</button></td>";
+                    table += "<td width='40%'>" + item + "</td>";
+                    table += "<td width='20%'><button id='button" + item + "' type='button' onclick=\"runPipeline('" + item + "')\">Run</button></td>";
                     table += "<td width='40%'><div id='loader" + item + "' class='loader' style='display: none;'></div></td>";
                     table += "</tr>";
                 });
 
                 table += "</table>";
                 $("#pipelines").html(table);
+            },
+            complete: function () {
+                $("#loader").hide();
+            }
+        });
+    }
+
+    function getPipelineRuns() {
+        $("#loader").show();
+
+        $.ajax({
+            type: "GET",
+            accepts: "application/json",
+            url: "/api/pipeline/runs/7",
+            contentType: "application/json",
+            error: function (jqXHR, textStatus, errorThrown) {
+                $("#error").html(jqXHR.responseText);
+            },
+            success: function (result) {
+                let table = "<table>";
+
+                $.each(result, function (key, item) {
+                    table += "<tr>";
+                    table += "<td style='padding: 16px'>" + item.pipelineName + "</td>";
+                    table += "<td style='padding: 16px'>" + item.runStart + "</td>";
+                    table += "<td style='padding: 16px'>" + item.runEnd + "</td>";
+                    table += "<td style='padding: 16px'>" + item.status + "</td>";
+                    table += "</tr>";
+                });
+
+                table += "</table>";
+                $("#pipelineRuns").html(table);
             },
             complete: function () {
                 $("#loader").hide();
@@ -83,7 +119,7 @@
 
         const button = $("#button" + pipelineName);
         const loader = $("#loader" + pipelineName);
-        
+
         button.prop("disabled", true);
         loader.show();
 
@@ -96,7 +132,7 @@
                 $("#error").html(jqXHR.responseText);
             },
             success: function (result) {
-                //getPipelineRuns();
+                getPipelineRuns();
             },
             complete: function () {
                 button.prop("disabled", false);

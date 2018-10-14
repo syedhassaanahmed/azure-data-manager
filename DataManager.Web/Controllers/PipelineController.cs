@@ -23,7 +23,7 @@ namespace DataManager.Web.Controllers
             return await _pipelineService.GetAllAsync();
         }
 
-        // POST: api/Pipeline
+        // POST: api/Pipeline/123
         [HttpPost]
         [Route("{name}")]
         public async Task CreateAsync(string name)
@@ -31,12 +31,20 @@ namespace DataManager.Web.Controllers
             await _pipelineService.UpsertAsync(name);
         }
 
-        // POST: api/Pipeline/run
+        // POST: api/Pipeline/run/xyz
         [HttpPost]
         [Route("run/{name}")]
         public async Task RunAsync(string name)
         {
-            await Task.Delay(5000);
+            await _pipelineService.RunAsync(name);
+        }
+
+        // GET: api/Pipeline/runs/7
+        [HttpGet]
+        [Route("runs/{days}")]
+        public async Task<IEnumerable<object>> GetAllRunsAsync(int days)
+        {
+            return await _pipelineService.GetAllRunsAsync(days);
         }
     }
 }

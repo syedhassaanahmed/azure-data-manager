@@ -46,7 +46,18 @@ namespace DataManager.Services
         public async Task<IEnumerable<string>> GetAllAsync()
         {
             var pipelines = await _dataFactoryService.GetAllPipelinesAsync();
-            return pipelines.Select(x => x.Name);
+            return pipelines.Select(p => p.Name);
+        }
+
+        public async Task RunAsync(string name)
+        {
+            await _dataFactoryService.RunPipelineAsync(name);
+        }
+
+        public async Task<IEnumerable<object>> GetAllRunsAsync(int days)
+        {
+            var runs = await _dataFactoryService.GetAllPipelineRunsAsync(days);
+            return runs.Select(r => new { r.PipelineName, r.RunStart, r.RunEnd, r.Status });
         }
     }
 }

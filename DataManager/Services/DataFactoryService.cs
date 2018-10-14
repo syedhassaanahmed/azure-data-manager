@@ -86,6 +86,18 @@ namespace DataManager.Services
         public async Task RunPipelineAsync(string name)
         {
             await _dataFactoryClient.Pipelines.CreateRunAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name, name);
-        }        
+        }
+
+        public async Task<IEnumerable<PipelineRun>> GetAllPipelineRunsAsync(int days)
+        {
+            var response = await _dataFactoryClient.PipelineRuns.QueryByFactoryAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name,
+                new RunFilterParameters(DateTime.Now.AddDays(-days), DateTime.Now, 
+                orderBy: new List<RunQueryOrderBy>
+                {
+                    new RunQueryOrderBy { OrderBy = nameof(PipelineRun.RunStart), Order = "DESC" }
+                }));
+
+            return response.Value;
+        }
     }
 }
