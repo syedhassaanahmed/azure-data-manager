@@ -1,5 +1,6 @@
 ﻿using DataManager.Models;
 using Microsoft.Azure.Management.DataFactory.Models;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -40,6 +41,12 @@ namespace DataManager.Services
 
             var triggerTasks = triggers.Select(t => _dataFactoryService.UpsertAndStartTriggerAsync(t.name, t.resource));
             await Task.WhenAll(triggerTasks);
-        }        
+        }
+
+        public async Task<IEnumerable<string>> GetAllAsync()
+        {
+            var pipelines = await _dataFactoryService.GetAllPipelinesAsync();
+            return pipelines.Select(x => x.Name);
+        }
     }
 }

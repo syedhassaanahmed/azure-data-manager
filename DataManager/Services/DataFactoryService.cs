@@ -8,6 +8,7 @@ using Microsoft.Azure.Management.DataFactory.Models;
 using Microsoft.AspNetCore.Authentication.AzureAD.UI;
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace DataManager.Services
 {
@@ -74,6 +75,12 @@ namespace DataManager.Services
                     _dataFactoryOptions.Name, name, resource);
 
             await _dataFactoryClient.Triggers.StartAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name, name);
+        }
+
+        public async Task<IEnumerable<PipelineResource>> GetAllPipelinesAsync()
+        {
+            var pipelines = await _dataFactoryClient.Pipelines.ListByFactoryAsync(_dataFactoryOptions.ResourceGroup, _dataFactoryOptions.Name);
+            return pipelines.ToList();
         }
 
         public async Task RunPipelineAsync(string name)

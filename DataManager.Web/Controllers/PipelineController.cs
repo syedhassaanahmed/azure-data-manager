@@ -18,35 +18,25 @@ namespace DataManager.Web.Controllers
 
         // GET: api/Pipeline
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IEnumerable<string>> GetAllAsync()
         {
-            return new string[] { "value1", "value2" };
-        }
-
-        // GET: api/Pipeline/5
-        [HttpGet("{id}", Name = "Get")]
-        public string Get(int id)
-        {
-            return "value";
+            return await _pipelineService.GetAllAsync();
         }
 
         // POST: api/Pipeline
         [HttpPost]
-        public async Task Create([FromBody] string name)
+        [Route("{name}")]
+        public async Task CreateAsync(string name)
         {
             await _pipelineService.UpsertAsync(name);
         }
 
-        // PUT: api/Pipeline/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        // POST: api/Pipeline/run
+        [HttpPost]
+        [Route("run/{name}")]
+        public async Task RunAsync(string name)
         {
-        }
-
-        // DELETE: api/ApiWithActions/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            await Task.Delay(5000);
         }
     }
 }
