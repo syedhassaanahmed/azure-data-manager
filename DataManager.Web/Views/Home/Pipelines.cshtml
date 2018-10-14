@@ -1,0 +1,46 @@
+﻿@{
+    ViewData["Title"] = "Pipelines";
+}
+<h2>@ViewData["Title"]</h2>
+
+<h3>Create New Pipeline</h3>
+
+<form action="javascript:void(0);" method="POST" onsubmit="addPipeline()">
+    <label for="pipelineName">Name</label>
+    <input type="text" id="pipelineName" />
+    <input type="submit" id="pipelineCreate" value="Create" />
+</form>
+<div id="loader" class="loader"></div>
+<div id="errorAdd" style="color: red;"></div>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+<script>
+    $("#loader").hide();
+
+    function addPipeline() {
+        $("#errorAdd").html("");
+        $("#pipelineCreate").prop("disabled", true);
+        $("#loader").show();
+
+        $.ajax({
+            type: "POST",
+            accepts: "application/json",
+            url: "/api/pipeline",
+            contentType: "application/json",
+            data: $("#pipelineName").val(),
+            error: function (jqXHR, textStatus, errorThrown) {
+                $("#errorAdd").html(jqXHR.responseText);
+            },
+            success: function (result) {
+                //getData();
+                $("#pipelineName").val("");
+            },
+            complete: function () {
+                $("#pipelineCreate").prop("disabled", false);
+                $("#loader").hide();
+            }
+        });
+    }
+</script>
