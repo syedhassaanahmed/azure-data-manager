@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Organizations which produce large volumes of data are increasingly investing in exploring better ways to analyze and extract key insights from this data. These organizations often face the challenge of diving into _data ponds_ and making the right dataset available to the prime beneficiaries i.e. Data Analysts/Data Scientists.
+Organizations which produce large volumes of data are increasingly investing in exploring better ways to analyze and extract key insights from this data. These organizations face the challenge of diving into _data ponds_ and often struggle to make the right dataset available to the prime beneficiaries i.e. Data Analysts/Data Scientists.
 
-This project aims to provide a template for exploring, ingesting, transforming, analyzing and showcasing data using Azure Data platform. We've used Azure Cosmos DB as the storage for data catalog. Azure Data Factory v2 performs the orchestration duties with Azure Databricks providing the compute for all transformation. The front-end interface of this project is an ASP.NET Core application.
+This project aims to provide a template for exploring, ingesting, transforming, analyzing and showcasing data using Azure Data platform. We've leveraged Azure Cosmos DB SQL API as storage layer for data catalog. Azure Blob Storage serves as the defacto store for all semi-structured data (e.g. JSON, CSV, Parquet files). Azure Data Factory v2 performs the orchestration duties with Azure Databricks providing the compute for all transformation. The front-end interface of this project is an ASP.NET Core application which reads catalog definitions and creates Data Factory entities using the [.NET Core SDK](https://docs.microsoft.com/en-us/azure/data-factory/quickstart-create-data-factory-dot-net).
 
 ## Architecture
 
@@ -12,7 +12,23 @@ This project aims to provide a template for exploring, ingesting, transforming, 
 
 ## Getting Started
 
+In this solution our [catalog definition](DataManager.Web/SampleData) consists of 2 data sources;
 
+a) Time series JSON files from IoT sensors
+
+b) SQL Database Table containing Sensors Metadata
+
+The pipeline we have defined, simply extracts the metadata from SQL Database into tabular form, joins it with time series data and finally publishes it to a REST endpoint.
+
+![architecture.png](docs/adf-pipeline.png)
+
+### Configuration
+
+### Authentication
+
+### Deployment
+
+[![Deploy to Azure](http://azuredeploy.net/deploybutton.png)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsyedhassaanahmed%2Fazure-data-manager%2Fmaster%2Fazuredeploy.json)
 
 ## TODO
 
