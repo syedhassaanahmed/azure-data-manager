@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Define parameters with default values
+# Environment variables with default values
 RESOURCE_GROUP=${RESOURCE_GROUP:=data-manager}
 RESOURCE_GROUP_LOCATION=${RESOURCE_GROUP_LOCATION:=westeurope}
 AD_APP_NAME=${AD_APP_NAME:=data-manager}
@@ -59,7 +59,7 @@ az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json -
     >/dev/null
 
 # Configure Databricks Token
-#databricks configure --token
+databricks configure --token
 DATABRICKS_TOKEN=$(grep token ~/.databrickscfg | awk -F ' = ' '{print $2}')
 
 # Create Databricks Cluster if needed
