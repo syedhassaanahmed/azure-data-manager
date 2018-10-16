@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Organizations which produce large volumes of data are increasingly investing in exploring better ways to analyze and extract key insights from this data. These organizations face the challenge of diving into *data ponds* and often struggle to make the right dataset available to their primary users i.e. Data Analysts/Data Scientists.
+Organizations which produce large volumes of data are increasingly investing in exploring better ways to analyze and extract key insights from this data. These organizations face regular challenges in the shape of *data ponds* and often struggle to make the right dataset available to their primary users i.e. Data Analysts/Data Scientists.
 
 This project aims to provide a template for defining, ingesting, transforming, analyzing and showcasing data using Azure Data platform. We've leveraged Azure Cosmos DB SQL API as storage layer for data catalog. Azure Blob Storage serves as the defacto store for all semi-structured data (e.g. JSON, CSV, Parquet files). Azure Data Factory (ADF) v2 performs the orchestration duties with Azure Databricks providing the compute for all transformations. The front-end interface is an ASP.NET Core web app which reads catalog definitions and creates ADF entities using the [.NET Core SDK](https://docs.microsoft.com/en-us/azure/data-factory/quickstart-create-data-factory-dot-net).
 
@@ -23,6 +23,7 @@ Our data pipeline simply extracts the metadata from SQL Database into tabular fo
 ![architecture.png](docs/adf-pipeline.png)
 
 The pipeline can either be triggered manually using the web app's REST API or in case of *dynamic* data sources i.e. Time Series, an [event trigger](https://docs.microsoft.com/en-us/azure/data-factory/how-to-create-event-trigger) is automatically created.
+>Event triggers unfortunately have [performance limitations](https://github.com/MicrosoftDocs/azure-docs/issues/15909) hence creating more than 100 dynamic data sources is currently not supported.
 
 ### Configuration
 

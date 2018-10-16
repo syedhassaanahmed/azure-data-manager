@@ -31,3 +31,5 @@ export RESOURCE_GROUP=data-manager
 export AD_APP_PASSWORD=MyStrongADPaSSw0rd
 ...
 ```
+
+>**Note:** In order to avoid invalid client secret error in Azure AD, please make sure to follow [this guidance](https://github.com/Azure-Samples/active-directory-dotnet-webapp-roleclaims/issues/19#issuecomment-299530241).
