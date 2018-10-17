@@ -1,7 +1,7 @@
 # Configuration
 
 The ASP.NET Core web app has the following configuration schema.
-> **Hint:** Use the .NET Core [Secret Manager tool](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-2.1&tabs=windows) to store the configuration.
+>Use the .NET Core [Secret Manager tool](https://docs.microsoft.com/en-us/aspnet/core/security/app-secrets?view=aspnetcore-2.1&tabs=windows) to store the configuration.
 
 ```json
 {

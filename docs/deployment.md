@@ -25,7 +25,7 @@ In order to address the above, we've created a setup bash script - [deploy.sh](.
 
 ### Environment Variables
 
-The script uses environment variables to parameterize the deployment. They can be overwritten like this prior to executing the script;
+The script uses environment variables to parameterize the deployment. They can be overwritten like this, prior to executing the script;
 
 ```bash
 export RESOURCE_GROUP=data-manager
@@ -33,4 +33,4 @@ export AD_APP_PASSWORD=MyStrongADPaSSw0rd
 ...
 ```
 
->**Note:** In order to avoid invalid client secret error in Azure AD, please make sure to follow [this guidance](https://github.com/Azure-Samples/active-directory-dotnet-webapp-roleclaims/issues/19#issuecomment-299530241).
+>In order to avoid invalid client secret error in Azure AD, please make sure to follow [this guidance](https://github.com/Azure-Samples/active-directory-dotnet-webapp-roleclaims/issues/19#issuecomment-299530241).

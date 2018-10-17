@@ -37,6 +37,11 @@ namespace DataManager.Web.Controllers
             return View();
         }
 
+        public IActionResult Lineage()
+        {
+            return View();
+        }
+
         [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

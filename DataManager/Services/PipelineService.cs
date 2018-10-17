@@ -24,10 +24,10 @@ namespace DataManager.Services
 
         public async Task UpsertAsync(string name)
         {
-            var allDatasets = await _cosmosDbService.ReadAllAsync<Models.Dataset>("dataset");
+            var allDatasets = await _cosmosDbService.GetAllAsync<Models.Dataset>("dataset");
             var (parameters, triggers) = await _datasetService.UpsertAllAsync(name, allDatasets);
 
-            var activeJobs = (await _cosmosDbService.ReadAllAsync<Job>("job")).Where(j => j.IsActive);
+            var activeJobs = (await _cosmosDbService.GetAllAsync<Job>("job")).Where(j => j.IsActive);
             var activities = _activityService.CreateAll(activeJobs, allDatasets);
 
             var pipeline = new PipelineResource

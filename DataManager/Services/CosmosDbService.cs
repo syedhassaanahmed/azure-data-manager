@@ -37,7 +37,7 @@ namespace DataManager.Services
             return UriFactory.CreateDocumentCollectionUri(_cosmosDbOptions.Database, collection);
         }
 
-        public async Task<IEnumerable<T>> ReadAllAsync<T>(string collection)
+        public async Task<IEnumerable<T>> GetAllAsync<T>(string collection)
             where T : BaseEntity
         {
             var collectionLink = await UpsertCollectionAsync(collection);

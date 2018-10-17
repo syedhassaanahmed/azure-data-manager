@@ -1,0 +1,58 @@
+﻿
+@{
+    ViewData["Title"] = "Lineage";
+}
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
+
+<h2>Lineage</h2>
+<div id="error" style="color: red;"></div>
+<div id="loader" class="loader" style="display:none;"></div>
+<div id="lineage"></div>
+
+<script>
+    $(document).ready(function () {
+        getLineage();
+    });
+
+    function getLineage() {
+        $("#loader").show();
+
+        $.ajax({
+            type: "GET",
+            accepts: "application/json",
+            url: "/api/lineage",
+            contentType: "application/json",
+            error: function (jqXHR, textStatus, errorThrown) {
+                $("#error").html(jqXHR.responseText);
+            },
+            success: function (result) {
+                const nodes = new vis.DataSet(result.datasets);
+                const edges = new vis.DataSet(result.jobs);
+
+                const data = {
+                    nodes: nodes,
+                    edges: edges
+                };
+
+                const options = {                    
+                    width: "1000px",
+                    height: "500px",
+                    edges: {                        
+                        arrows: "to"
+                    }
+                };
+
+                const container = document.getElementById("lineage");
+                const network = new vis.Network(container, data, options);
+            },
+            complete: function () {
+                $("#loader").hide();
+            }
+        });
+    }
+</script>
