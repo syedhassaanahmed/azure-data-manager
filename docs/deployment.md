@@ -2,7 +2,7 @@
 
 [![Deploy to Azure](http://azuredeploy.net/deploybutton.png)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsyedhassaanahmed%2Fazure-data-manager%2Fmaster%2Fazuredeploy.json)
 
-The above button uses [ARM template](../azuredeploy.json) to deploy the necessary resources in the resource group. The ARM template however **cannot** deploy the following;
+The above button uses [ARM template](../azuredeploy.json) to deploy all necessary resources to the resource group. The ARM template however **cannot** deploy the following;
 
 - Azure AD Application
 - Databricks Cluster
@@ -20,6 +20,7 @@ In order to address the above, we've created a setup bash script - [deploy.sh](.
 
 - [Azure CLI 2.x](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 - [Databricks CLI](https://docs.databricks.com/user-guide/dev-tools/databricks-cli.html#install-the-cli)
+>You need to manually create a Databricks [personal access token](https://docs.databricks.com/api/latest/authentication.html#generate-a-token). During script execution you're asked to provide Databricks workspace endpoint `"https://<Azure region>.azuredatabricks.net` and Databricks token. ADF also accesses Databricks clusters and notebooks using the same token.
 - [sqlcmd](https://docs.microsoft.com/en-us/sql/linux/sql-server-linux-setup-tools?view=sql-server-2017)
 
 ### Environment Variables
