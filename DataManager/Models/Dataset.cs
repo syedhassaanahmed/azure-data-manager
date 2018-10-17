@@ -16,15 +16,15 @@ namespace DataManager.Models
         public string SecretName { get; set; }
         public string DataPath { get; set; }
 
-        public string FileName => Path.GetFileName(DataPath);
-        public string FolderPath => Path.GetDirectoryName(DataPath).Replace("\\", "/");
-        public string FileExtension => Path.GetExtension(DataPath);
+        public string GetFileName() => Path.GetFileName(DataPath);
+        public string GetFolderPath() => Path.GetDirectoryName(DataPath).Replace("\\", "/");
+        public string GetFileExtension() => Path.GetExtension(DataPath);
 
-        public string FolderParameter => $"folderPath_{Id}";
-        public string FileParameter => $"fileName_{Id}";
+        public string GetFolderParameter() => $"folderPath_{Id}";
+        public string GetFileParameter() => $"fileName_{Id}";
 
-        public string DataPathExpression => IsDynamic ? 
-            $"@if(equals(pipeline().TriggerType, 'BlobEventsTrigger'), concat('/', pipeline().parameters.{FolderParameter}, '/', pipeline().parameters.{FileParameter}), '{DataPath}')" 
+        public string GetDataPathExpression() => IsDynamic ? 
+            $"@if(equals(pipeline().TriggerType, 'BlobEventsTrigger'), concat('/', pipeline().parameters.{GetFolderParameter()}, '/', pipeline().parameters.{GetFileParameter()}), '{DataPath}')" 
             : DataPath;        
     }
 }

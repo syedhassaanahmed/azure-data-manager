@@ -19,21 +19,21 @@ namespace DataManager.Services
 
         public TriggerResource CreateBlobEventTrigger(string pipelineName, Models.Dataset dataset)
         {
-            var allFolders = dataset.FolderPath.Split("/").ToList();
+            var allFolders = dataset.GetFolderPath().Split("/").ToList();
             allFolders.Insert(2, "blobs");
             var beginsWith = string.Join("/", allFolders) + "/";
 
             var trigger = new BlobEventsTrigger
             {
                 BlobPathBeginsWith = beginsWith,
-                BlobPathEndsWith = dataset.FileExtension,
+                BlobPathEndsWith = dataset.GetFileExtension(),
                 Events = new List<string> { "Microsoft.Storage.BlobCreated" },
                 Pipelines = new List<TriggerPipelineReference>
                 {
                     new TriggerPipelineReference(new PipelineReference(pipelineName), new Dictionary<string, object>
                     {
-                        { dataset.FolderParameter, "@triggerBody().folderPath" },
-                        { dataset.FileParameter, "@triggerBody().fileName" }
+                        { dataset.GetFolderParameter(), "@triggerBody().folderPath" },
+                        { dataset.GetFileParameter(), "@triggerBody().fileName" }
                     })
                 },
                 Scope = $"/subscriptions/{_dataFactoryOptions.SubscriptionId}/resourceGroups/{_dataFactoryOptions.ResourceGroup}/providers/Microsoft.Storage/storageAccounts/{_storageAccountOptions.Name}"

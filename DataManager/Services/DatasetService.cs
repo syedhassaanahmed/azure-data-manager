@@ -36,7 +36,7 @@ namespace DataManager.Services
             ConcurrentBag<(string name, TriggerResource resource)> triggers, Models.Dataset dataset)
         {
             Microsoft.Azure.Management.DataFactory.Models.Dataset ds = null;
-            Task connectionTask = Task.CompletedTask;
+            var connectionTask = Task.CompletedTask;
 
             switch (dataset.Type)
             {
@@ -45,8 +45,8 @@ namespace DataManager.Services
 
                     if (dataset.IsDynamic)
                     {
-                        pipelineParameters.GetOrAdd(dataset.FolderParameter, new ParameterSpecification("String"));
-                        pipelineParameters.GetOrAdd(dataset.FileParameter, new ParameterSpecification("String"));
+                        pipelineParameters.GetOrAdd(dataset.GetFolderParameter(), new ParameterSpecification("String"));
+                        pipelineParameters.GetOrAdd(dataset.GetFileParameter(), new ParameterSpecification("String"));
 
                         var triggerResource = _triggerService.CreateBlobEventTrigger(pipelineName, dataset);
                         triggers.Add(($"blobTrigger_{dataset.Id}", triggerResource));
@@ -56,9 +56,9 @@ namespace DataManager.Services
                     {
                         Description = dataset.Description,
                         LinkedServiceName = new LinkedServiceReference { ReferenceName = dataset.SecretName },
-                        FolderPath = dataset.FolderPath.TrimStart('/'),
-                        FileName = dataset.FileName,
-                        Format = GetFormat(dataset.FileExtension)
+                        FolderPath = dataset.GetFolderPath().TrimStart('/'),
+                        FileName = dataset.GetFileName(),
+                        Format = GetFormat(dataset.GetFileExtension())
                     };
                     break;
                 case DatasetType.SqlServer:

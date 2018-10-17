@@ -30,7 +30,7 @@ namespace DataManager.Services
                             foreach (var parameter in job.Specification.NotebookParameters)
                             {
                                 var dataset = allDatasets.First(d => d.Id == parameter.DatasetId);
-                                notebookParameters.Add(parameter.Name, dataset.DataPathExpression);
+                                notebookParameters.Add(parameter.Name, dataset.GetDataPathExpression());
                             }
 
                             activity = new DatabricksNotebookActivity
