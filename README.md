@@ -2,16 +2,15 @@
 
 ## Table of contents
 
-- [azure-data-manager](#azure-data-manager)
-  * [Introduction](#introduction)
-  * [Architecture](#architecture)
-  * [Getting Started](#getting-started)
-    + [Configuration](#configuration)
-    + [Security](#security)
-    + [Deployment](#deployment)
-    + [Testing APIs locally](#testing-apis-locally)
-  * [TODO](#todo)
-  * [Team](#team)
+- [Introduction](#introduction)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+  * [Configuration](#configuration)
+  * [Security](#security)
+  * [Deployment](#deployment)
+  * [Testing APIs locally](#testing-apis-locally)
+- [TODO](#todo)
+- [Team](#team)
 
 ## Introduction
 
