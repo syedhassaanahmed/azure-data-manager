@@ -51,7 +51,7 @@ For configuring the ASP.NET Core web app [please follow this document](docs/conf
 
 ### Security
 
-To authenticate the web app we create an [Azure AD application](https://github.com/Azure-Samples/active-directory-aspnetcore-webapp-openidconnect-v2/tree/aspnetcore2-1). This application also has to be [assigned contributor role](https://docs.microsoft.com/en-us/azure/data-factory/quickstart-create-data-factory-dot-net#create-an-application-in-azure-active-directory) on the resource group so that ADF and its entities can be provisioned.
+To authenticate the web app we create an [Azure AD application](https://github.com/Azure-Samples/active-directory-aspnetcore-webapp-openidconnect-v2/). This application also has to be [assigned contributor role](https://docs.microsoft.com/en-us/azure/data-factory/quickstart-create-data-factory-dot-net#create-an-application-in-azure-active-directory) on the resource group so that ADF and its entities can be provisioned.
 
 In order to access credentials of our data sources, ADF relies on Azure Key Vault. When an ADF resource is provisioned in Azure, a [Service Identity](https://docs.microsoft.com/en-us/azure/data-factory/data-factory-service-identity#retrieve-service-identity) is automatically generated. That Service Identity has to be granted `Get` permission in the [Key Vault access policies](https://docs.microsoft.com/en-us/azure/data-factory/store-credentials-in-key-vault#steps).
 
