@@ -1,5 +1,18 @@
 # azure-data-manager
 
+## Table of contents
+
+- [azure-data-manager](#azure-data-manager)
+  * [Introduction](#introduction)
+  * [Architecture](#architecture)
+  * [Getting Started](#getting-started)
+    + [Configuration](#configuration)
+    + [Security](#security)
+    + [Deployment](#deployment)
+    + [Testing APIs locally](#testing-apis-locally)
+  * [TODO](#todo)
+  * [Team](#team)
+
 ## Introduction
 
 Organizations which produce large volumes of data are increasingly investing in exploring better ways to discover, analyze and extract key insights from the data. These organizations face regular challenges in the shape of *data ponds* and often struggle to make the right dataset available to their primary users i.e. Data Analysts/Data Scientists.
@@ -23,7 +36,10 @@ b) SQL Database Table containing sensors metadata
 Our data pipeline simply extracts the metadata from SQL Database into tabular form, joins it with time series data and finally publishes it to a REST endpoint.
 
 ![architecture.png](docs/adf-pipeline.png)
+*ADF pipeline view*
+
 ![lineage.png](docs/lineage.png)
+*Web app data lineage view*
 
 The pipeline can either be triggered manually using the web app's REST API or in case of *dynamic* data sources i.e. Time Series, an [event trigger](https://docs.microsoft.com/en-us/azure/data-factory/how-to-create-event-trigger) is automatically created.
 >Event triggers unfortunately have [performance limitations](https://github.com/MicrosoftDocs/azure-docs/issues/15909) hence creating more than 100 dynamic data sources is currently not supported.
