@@ -18,6 +18,8 @@ In order to address the above, we've created a setup bash script - [deploy.sh](.
 
 ### Prerequisites
 
+Make sure these tools are installed and added to the `PATH` environment variable.
+
 - [Azure CLI 2.x](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
 - [Databricks CLI](https://docs.databricks.com/user-guide/dev-tools/databricks-cli.html#install-the-cli)
 >You need to manually create a Databricks [personal access token](https://docs.databricks.com/api/latest/authentication.html#generate-a-token). During script execution you're asked to provide Databricks workspace endpoint `"https://<Azure region>.azuredatabricks.net` and Databricks token. ADF also accesses Databricks clusters and notebooks using the same token.

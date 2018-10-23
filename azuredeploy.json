@@ -386,15 +386,6 @@
             ],
             "resources": [
                 {
-                    "name": "AspNetCoreRuntime",
-                    "type": "siteextensions",
-                    "apiVersion": "2018-02-01",
-                    "location": "[resourceGroup().location]",
-                    "dependsOn": [
-                        "[variables('webAppId')]"
-                    ]
-                },
-                {
                     "name": "web",
                     "type": "sourcecontrols",
                     "apiVersion": "2018-02-01",
