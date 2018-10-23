@@ -146,7 +146,9 @@
         "storageAccountName": "[concat(parameters('storageAccountPrefix'), uniqueString(resourceGroup().id))]",
         "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
         "keyVaultId": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
-        "keyVaultLinkedReferenceId": "[concat(variables('dataFactoryId'), '/linkedServices/', parameters('keyVaultName'))]"
+        "keyVaultLinkedReferenceId": "[concat(variables('dataFactoryId'), '/linkedServices/', parameters('keyVaultName'))]",
+        "webAppId": "[resourceId('Microsoft.Web/Sites', parameters('webAppName'))]",
+        "repoURL": ""
     },
     "resources": [
         {
@@ -389,8 +391,21 @@
                     "apiVersion": "2018-02-01",
                     "location": "[resourceGroup().location]",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Web/Sites', parameters('webAppName'))]"
+                        "[variables('webAppId')]"
                     ]
+                },
+                {
+                    "name": "web",
+                    "type": "sourcecontrols",
+                    "apiVersion": "2018-02-01",
+                    "dependsOn": [
+                        "[variables('webAppId')]"
+                    ],
+                    "properties": {
+                        "RepoUrl": "[variables('repoURL')]",
+                        "branch": "master",
+                        "IsManualIntegration": true
+                    }
                 }
             ],
             "properties": {
