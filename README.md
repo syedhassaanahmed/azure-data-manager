@@ -1,6 +1,6 @@
 # azure-data-manager
 
-[![Build Status](https://syedhassaanahmed.visualstudio.com/azure-data-manager/_apis/build/status/azure-data-manager-CI)](https://syedhassaanahmed.visualstudio.com/azure-data-manager/_build/latest?definitionId=6)
+[![Build Status](https://dev.azure.com/syedhassaanahmed/azure-data-manager/_apis/build/status/azure-data-manager-CI)](https://dev.azure.com/syedhassaanahmed/azure-data-manager/_build/latest?definitionId=6)
 
 ## Table of contents
 
