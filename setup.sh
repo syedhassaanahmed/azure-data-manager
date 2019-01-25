@@ -2,7 +2,7 @@
 
 # Environment variables with default values
 RESOURCE_GROUP=${RESOURCE_GROUP:=data-manager}
-RESOURCE_GROUP_LOCATION=${RESOURCE_GROUP_LOCATION:=eastus}
+RESOURCE_GROUP_LOCATION=${RESOURCE_GROUP_LOCATION:=westeurope}
 AD_APP_NAME=${AD_APP_NAME:=data-manager}
 AD_APP_PASSWORD=${AD_APP_PASSWORD:=MyStrongADPaSSw0rd}
 STORAGE_ACCOUNT_PREFIX=${STORAGE_ACCOUNT_PREFIX:=datamanager}
@@ -44,9 +44,12 @@ if [[ "$RG_EXISTS" != true ]]; then
   az group create -n $RESOURCE_GROUP -l $RESOURCE_GROUP_LOCATION
 fi
 
+STORAGE_ACCOUNT_CONTAINER=data-manager
+
 # Deploy ARM Template
 az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json --parameters \
     storageAccountPrefix=$STORAGE_ACCOUNT_PREFIX \
+    storageAccountContainer=$STORAGE_ACCOUNT_CONTAINER \
     keyVaultName=$KEY_VAULT_NAME \
     databricksSecretName=$DATABRICKS_SECRET_NAME \
     sqlServerName=$SQL_SERVER_NAME \
@@ -89,9 +92,6 @@ DATABRICKS_CLUSTER_ID=$(databricks clusters list | awk '/'$DATABRICKS_CLUSTER_NA
 # Create Storage Container
 STORAGE_ACCOUNT_NAME=$(az storage account list -g $RESOURCE_GROUP --query "[?starts_with(name, '$STORAGE_ACCOUNT_PREFIX')].name" -o tsv)
 STORAGE_ACCOUNT_KEY=$(az storage account keys list -g $RESOURCE_GROUP -n $STORAGE_ACCOUNT_NAME --query "[0].value" -o tsv)
-STORAGE_ACCOUNT_CONTAINER=data-manager
-
-az storage container create --account-name $STORAGE_ACCOUNT_NAME --account-key $STORAGE_ACCOUNT_KEY --name $STORAGE_ACCOUNT_CONTAINER
 
 # Import all Databricks Notebooks
 databricks workspace import_dir -o notebooks /Shared
@@ -127,7 +127,7 @@ az storage blob upload-batch --account-name $STORAGE_ACCOUNT_NAME --account-key 
     -s sample-data/ --pattern messages_20181004T*.json --destination-path input
 
 # Allow current public IP in SQL Server firewall rule
-PUBLIC_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
+PUBLIC_IP=$(curl ipinfo.io/ip)
 az sql server firewall-rule create -g $RESOURCE_GROUP -s $SQL_SERVER_NAME -n my-public-ip-rule --start-ip-address $PUBLIC_IP --end-ip-address $PUBLIC_IP
 
 # Populate Sensors Table in SQL DB

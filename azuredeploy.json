@@ -30,6 +30,13 @@
                 "description": "Prefix to be used in storage account name."
             }
         },
+        "storageAccountContainer": {
+            "type": "string",
+            "defaultValue": "data-manager",
+            "metadata": {
+                "description": "Azure Storage container name. Must be the same name used in /sample-data/messages*.json"
+            }
+        },
         "storageAccountSecretName": {
             "type": "string",
             "defaultValue": "blobStorage",
@@ -250,7 +257,17 @@
                     },
                     "keySource": "Microsoft.Storage"
                 }
-            }
+            },
+            "resources": [
+                {
+                    "name": "[concat('default/', parameters('storageAccountContainer'))]",
+                    "type": "blobServices/containers",
+                    "apiVersion": "2018-07-01",
+                    "dependsOn": [
+                        "[variables('storageAccountId')]"
+                    ]
+                }
+            ]
         },
         {
             "name": "[parameters('keyVaultName')]",
