@@ -59,7 +59,7 @@ az group deployment create -g $RESOURCE_GROUP --template-file azuredeploy.json -
     azureADClientID=$AD_APP_ID \
     azureADClientSecret=$AD_APP_PASSWORD \
     webAppName=$WEB_APP_NAME \
-    >/dev/null
+    -o none
 
 # Configure Databricks Token
 databricks configure --token
@@ -115,12 +115,12 @@ EOF
 databricks runs submit --json "$BODY_CREATE_JOB_RUN"
 
 # Set Databricks Cluster ID in Web App Settings
-az webapp config appsettings set -g $RESOURCE_GROUP -n $WEB_APP_NAME --settings Databricks:ExistingClusterId=$DATABRICKS_CLUSTER_ID >/dev/null
+az webapp config appsettings set -g $RESOURCE_GROUP -n $WEB_APP_NAME --settings Databricks:ExistingClusterId=$DATABRICKS_CLUSTER_ID -o none
 
 # Add Databricks Token in KeyVault
 USER_PRINCIPAL_NAME=$(az account show --query "user.name" -o tsv)
 az keyvault set-policy -n $KEY_VAULT_NAME --upn $USER_PRINCIPAL_NAME --secret-permissions get set list
-az keyvault secret set --vault-name $KEY_VAULT_NAME --name $DATABRICKS_SECRET_NAME --value $DATABRICKS_TOKEN >/dev/null
+az keyvault secret set --vault-name $KEY_VAULT_NAME --name $DATABRICKS_SECRET_NAME --value $DATABRICKS_TOKEN -o none
 
 # Upload 2018-10-04 blobs to the container/input folder
 az storage blob upload-batch --account-name $STORAGE_ACCOUNT_NAME --account-key $STORAGE_ACCOUNT_KEY -d $STORAGE_ACCOUNT_CONTAINER \
