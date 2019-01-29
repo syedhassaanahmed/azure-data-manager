@@ -16,7 +16,7 @@ SQL_ADMIN_PASSWORD=${SQL_ADMIN_PASSWORD:='<YourStrong!Passw0rd>'}
 WEB_APP_NAME=${WEB_APP_NAME:=datamanager-web}
 
 # Create Azure AD Application for the Web App if needed
-AD_APP_ID=$(az ad app list --display-name $AD_APP_NAME --query "[?displayName=='$AD_APP_NAME'].appId" -o tsv)
+AD_APP_ID=$(az ad app list --show-mine --display-name $AD_APP_NAME --query "[?displayName=='$AD_APP_NAME'].appId" -o tsv)
 LOCAL_WEBSITE=https://localhost:44338
 
 if [ -z "$AD_APP_ID" ]; then
@@ -33,7 +33,7 @@ REPLY_URLS="$LOCAL_WEBSITE $LOCAL_WEBSITE/signin-oidc $AZURE_WEBSITE $AZURE_WEBS
 az ad app update --id $AD_APP_ID --reply-urls $REPLY_URLS
 
 # Create Service Principal for the above AD App if needed.
-AD_SP_ID=$(az ad sp list --display-name $AD_APP_NAME --query "[?appId=='$AD_APP_ID'].objectId" -o tsv)
+AD_SP_ID=$(az ad sp list --show-mine --display-name $AD_APP_NAME --query "[?appId=='$AD_APP_ID'].objectId" -o tsv)
 if [ -z "$AD_SP_ID" ]; then
     AD_SP_ID=$(az ad sp create --id $AD_APP_ID --query "objectId" -o tsv)
 fi
